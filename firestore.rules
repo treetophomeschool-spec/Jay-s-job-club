@@ -1,0 +1,3345 @@
+rules_version = '2';
+
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// This security rules file assumes the following data structures:
+//
+// 1. Collection: publicProfiles/{userId}
+//    Fields: uid (string, immutable), username (string, 2..40), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 2. Collection: communityPosts/{postId}
+//    Fields: authorId (string, immutable), username (string, 2..40), category (enum), title (string, 3..100),
+//            message (string, 10..1500), visibility ('published'|'archived'), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 3. Collection: canopyStudios/{userId}
+//    Fields: uid (string, immutable), studioName (string, 2..48), tradeFocus (enum), floorStyle (enum),
+//            trimAccent (enum), safetyGateClosed (bool), furnishedItems (list<=6), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 4. Collection: journalEntries/{entryId} (Owner-Only Private)
+//    Fields: uid (string, immutable), title (string, 1..120), content (string, 1..4000), entryType (enum),
+//            createdAt (timestamp, immutable), updatedAt (timestamp)
+// 5. Collection: treeProgress/{userId} (Owner/Admin Isolated)
+//    Fields: uid (string, immutable), tryingTokens (int), gatheringTokens (int), treehouseTokens (int),
+//            ownedFurnishings (list<=6), sharesCompleted (int), welcomeCheckedIn (bool),
+//            dailyStreak (opt int), bestStreak (opt int), lastStreakDate (opt YYYY-MM-DD),
+//            createdAt (timestamp, immutable), updatedAt (timestamp)
+// 6. Collection: toolsOfTrade/{toolId}
+//    Fields: ownerId (string, immutable), username (string, 2..40), toolName (string, 2..60), tradeCategory (enum),
+//            visualKind (enum), showAndTellStory (string, 10..600), isSharedShowAndTell (bool),
+//            createdAt (timestamp, immutable), updatedAt (timestamp)
+// 7. Collection: storeListings/{listingId}
+//    Fields: sellerId (string, immutable), sellerName (string, 2..40), itemKind (enum), title (string, 3..80),
+//            craftNote (string, 8..400), priceTokens (int, 1..50), status ('available'|'sold'|'cancelled'),
+//            buyerId (string), proceedsClaimed (bool), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 8. Collection: serviceProviders/{providerId}
+//    Fields: providerId (string, immutable), displayName (string, 2..50), providerRole (enum),
+//            specialtySummary (string, 10..500), neuroAccommodations (string, 6..300), sessionMode (enum),
+//            availabilityStatus ('available'|'paused'|'archived'), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 9. Collection: artisanItems/{itemId}
+//    Fields: makerId (string, immutable), makerName (string, 2..40), title (string, 3..80), category (enum),
+//            materialsAndDimensions (string, 6..240), story (string, 10..500), priceCents (int, 300..250000),
+//            stockCount (int, 0..100), status ('active'|'sold_out'|'archived'), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 10. Collection: privacyConsents/{userId} (Owner-Only UK/EU GDPR Consent)
+//     Fields: uid (string, immutable), policyVersion (string, 2..32), localDeviceStorage (bool),
+//             cloudProgressSync (bool), privateJournalCloudSync (bool), communityAttributionConsent (bool),
+//             liveCollabPresenceConsent (bool), usePseudonym (bool), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 11. Collection: admins/{adminId}
+//     Fields: uid (string, immutable), handle (string, 2..40), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 12. Collection: treetopApplications/{applicantId}
+//     Fields: applicantId (string, immutable), displayName (string, 2..40), specialInterestJourney (string, 15..1200),
+//             preferredTradeTrack (enum), supervisionContext (enum), status ('pending'|'approved'|'declined'),
+//             treetopTokenGranted (bool), tokenCode (string), adminNote (string), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 13. Collection: pgCertNotes/{noteId}
+//     Fields: authorId (string, immutable), studentHandle (string, 2..50), moduleTheme (enum), title (string, 4..120),
+//             studyReflection (string, 20..3000), practiceTakeaway (string, 10..600), visibility ('published'|'archived'),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 14. Collection: canopyWorkshops/{workshopId}
+//     Fields: hostId (string, immutable), hostName (string, 2..40), title (string, 4..90), tradeCategory (enum),
+//             specialInterestFocus (string, 6..280), rotaSlotLabel (string, 4..80), sensoryPacingNote (string, 6..240),
+//             overflowPlatform (enum), overflowSummary (string, 6..300), maxParticipants (int, 2..30),
+//             status ('scheduled'|'completed'|'cancelled'), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 15. Subcollection: canopyWorkshops/{workshopId}/registrations/{attendeeId}
+//     Fields: workshopId (string, immutable), attendeeId (string, immutable), attendeeName (string, 2..40),
+//             wantsSocialOverflow (bool), adultApprovalType (enum), adultApprovalConfirmed (bool),
+//             appropriatenessConfirmed (bool), safeguardingNote (string, 0..240), status ('registered'|'cancelled'),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 16. Subcollection: canopyWorkshops/{workshopId}/overflowAccess/{detailId}
+//     Fields: workshopId (string, immutable), hostId (string, immutable), platformLabel (string, 2..60),
+//             joinInstructionsAndHandle (string, 6..400), moderationRules (string, 6..300),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 17. Collection: interestPathways/{pathwayId} (Owner/Admin Isolated)
+//     Fields: uid (string, immutable), entrantHandle (string, 2..40), specialInterest (string, 2..120),
+//             potentialJobRole (string, 2..120), tradeTrack (enum), comfortableNextStep (string, 0..360),
+//             readinessStage (enum), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 18. Collection: craftedBottles/{bottleId}
+//     Fields: makerId (string, immutable), makerName (string, 2..40), productTitle (string, 3..80),
+//             labelHeadline (string, 2..40), labelBatchNote (string, 2..80), barkOriginAndProcess (string, 10..500),
+//             bottleSizeMl (5|10|15|30), saleVenue ('welcome_area'|'canopy'|'both'), pricePence (int, 300..50000),
+//             priceTokens (int, 1..50), stockCount (int, 0..50), status ('on_sale'|'sold_out'|'archived'),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 19. Collection: canopyPaypalItems/{itemId}
+//     Fields: sellerId (string, immutable), sellerName (string, 2..40), title (string, 3..80), tradeCategory (enum),
+//             materialsSpec (string, 5..200), craftStory (string, 10..600), sellerBenchTag (string, 0..50),
+//             priceCents (int, 300..250000), stockCount (int, 0..100), status ('active'|'sold_out'|'archived'),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 20. Collection: shoeCharacters/{userId} (Owner/Admin Isolated)
+//     Fields: uid (string, immutable), shoeKind (enum), colorway (enum), characterNickname (string, 2..36),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 21. Collection: chillPodOccupancy/{podId} (1 Person Max Per Pod: pod_1..pod_4)
+//     Fields: podId (enum, immutable), podLabel (string, 3..40), occupantId (string, 0..128), occupantName (string, 0..40),
+//             occupancyStatus ('vacant'|'occupied'), fanEnabled (bool), heaterEnabled (bool, mutually exclusive with fanEnabled),
+//             lightsOffCalm (bool), flotationEnabled (bool), quiltType ('none'|'vegan'|'natural_duck_feather'),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+// 22. Collection: jobCentreVacancies/{vacancyId}
+//     Fields: referenceCode (JC-*, immutable), jobTitle (string, 3..90), tradeCategory (enum), locationZone (enum),
+//             pacingStyle (enum), cardSummary (string, 10..700), keySteps (string, 6..500), collaborationMode (enum),
+//             collaborationOpen (bool), rewardTokens (int, 1..15), creatorId (string, immutable), creatorName (string, 2..40),
+//             status ('open'|'filled'|'archived'), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 23. Subcollection: jobCentreVacancies/{vacancyId}/collaborators/{memberId}
+//     Fields: vacancyId (string, immutable), memberId (string, immutable), memberName (string, 2..40),
+//             collabRole (enum), pledgeNote (string, 4..280), preferredStation (enum),
+//             status ('active'|'completed'|'stepped_back'), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 24. Collection: uxBetaFeedback/{feedbackId} (Owner/Admin Isolated)
+//     Fields: authorId (string, immutable), testerHandle (string, 2..40), focusArea (enum), easeScore (int, 1..5),
+//             workedWell (string, 4..600), improvementIdea (string, 0..600), createdAt (timestamp, immutable), updatedAt (timestamp)
+// 25. Collection: dailyHabitTrackers/{userId} (Owner/Admin Isolated)
+//     Fields: uid (string, immutable), activeDate (YYYY-MM-DD), energyPoints (int, 0..99999),
+//             lifetimeEnergyEarned (int, 0..999999), totalMilestonesLogged (int, 0..99999),
+//             dailyStreak (int, 0..99999), bestStreak (int, 0..99999),
+//             completedIdsToday (list<=10), customHabitLabels (list<=5), lastMilestoneLabel (string, 0..80),
+//             createdAt (timestamp, immutable), updatedAt (timestamp)
+//
+// ===============================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Pillar & Phase 4.1: Global Safety Net (Default-Deny Catch-All)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // ===============================================================
+    // Helper Functions & Hardened Global Primitives
+    // ===============================================================
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isSignedIn() {
+      return isAuthenticated();
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function uidUnchanged() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == request.auth.uid;
+    }
+
+    function uidNotModified() {
+      return !('uid' in request.resource.data) ||
+        request.resource.data.uid == resource.data.uid;
+    }
+
+    function hasRequiredFields(fields) {
+      return request.resource.data.keys().hasAll(fields);
+    }
+
+    function hasOnlyAllowedFields(fields) {
+      return request.resource.data.keys().hasOnly(fields);
+    }
+
+    function areImmutableFieldsUnchanged(fields) {
+      return !request.resource.data.diff(resource.data).affectedKeys().hasAny(fields);
+    }
+
+    function isVerifiedUser() {
+      return isSignedIn() && request.auth.token.email_verified == true;
+    }
+
+    // Bootstrapped Admin check (Enforces email_verified == true to defeat Email Spoofing; zero DB reads)
+    function isVerifiedAdminEmail() {
+      return isVerifiedUser() && request.auth.token.email == 'treetophomeschool@gmail.com';
+    }
+
+    // Full Admin check for single-document operations (get, create, update, delete)
+    function isAdmin() {
+      return isVerifiedAdminEmail() || (
+        isVerifiedUser() &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid))
+      );
+    }
+
+    // Master Treetop Token Entry Gate (Single-doc read/write check; never used in allow list)
+    function hasApprovedTreetopToken() {
+      return isAdmin() || (
+        isSignedIn() &&
+        exists(/databases/$(database)/documents/treetopApplications/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/treetopApplications/$(request.auth.uid)).data.status == 'approved' &&
+        get(/databases/$(database)/documents/treetopApplications/$(request.auth.uid)).data.treetopTokenGranted == true
+      );
+    }
+
+    function isValidFurnishingList(items) {
+      return items is list &&
+        items.size() <= 6 &&
+        (items.size() == 0 || (items[0] is string && items[0].size() >= 1 && items[0].size() <= 32)) &&
+        items.hasOnly([
+          'brass_hanging_lantern',
+          'amber_floor_lantern',
+          'starlight_garland',
+          'cedar_reading_lamp',
+          'woven_sanctuary_rug',
+          'fern_planter_box'
+        ]);
+    }
+
+    // Validation Blueprint 1: PublicProfile
+    function isValidPublicProfile(data) {
+      return data.keys().hasAll(['uid', 'username', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'username', 'createdAt', 'updatedAt']) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.username is string &&
+        data.username.size() >= 2 &&
+        data.username.size() <= 40 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 2: CommunityPost
+    function isValidCommunityPost(data) {
+      return data.keys().hasAll([
+          'authorId',
+          'username',
+          'category',
+          'title',
+          'message',
+          'visibility',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'authorId',
+          'username',
+          'category',
+          'title',
+          'message',
+          'visibility',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.authorId is string &&
+        data.authorId.size() >= 1 &&
+        data.authorId.size() <= 128 &&
+        data.authorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.authorId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.username is string &&
+        data.username.size() >= 2 &&
+        data.username.size() <= 40 &&
+        data.category is string &&
+        data.category.size() >= 1 &&
+        data.category.size() <= 32 &&
+        data.category in [
+          'Job Opportunity',
+          'Collaboration Request',
+          'Resource Share',
+          'General Advice'
+        ] &&
+        data.title is string &&
+        data.title.size() >= 3 &&
+        data.title.size() <= 100 &&
+        data.message is string &&
+        data.message.size() >= 10 &&
+        data.message.size() <= 1500 &&
+        data.visibility is string &&
+        data.visibility.size() >= 1 &&
+        data.visibility.size() <= 16 &&
+        data.visibility in ['published', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 3: CanopyStudio
+    function isValidCanopyStudio(data) {
+      return data.keys().hasAll([
+          'uid',
+          'studioName',
+          'tradeFocus',
+          'floorStyle',
+          'trimAccent',
+          'safetyGateClosed',
+          'furnishedItems',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'studioName',
+          'tradeFocus',
+          'floorStyle',
+          'trimAccent',
+          'safetyGateClosed',
+          'furnishedItems',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.studioName is string &&
+        data.studioName.size() >= 2 &&
+        data.studioName.size() <= 48 &&
+        data.tradeFocus is string &&
+        data.tradeFocus.size() >= 1 &&
+        data.tradeFocus.size() <= 40 &&
+        data.tradeFocus in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Community Outreach'
+        ] &&
+        data.floorStyle is string &&
+        data.floorStyle.size() >= 1 &&
+        data.floorStyle.size() <= 32 &&
+        data.floorStyle in [
+          'interlocking_oak',
+          'nonslip_slate',
+          'cork_sanctuary',
+          'herringbone_cedar'
+        ] &&
+        data.trimAccent is string &&
+        data.trimAccent.size() >= 1 &&
+        data.trimAccent.size() <= 24 &&
+        data.trimAccent in [
+          'warm_brass',
+          'forged_iron',
+          'forest_sage',
+          'terracotta_clay'
+        ] &&
+        data.safetyGateClosed is bool &&
+        isValidFurnishingList(data.furnishedItems) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 4: JournalEntry
+    function isValidJournalEntry(data) {
+      return data.keys().hasAll([
+          'uid',
+          'title',
+          'content',
+          'entryType',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'title',
+          'content',
+          'entryType',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.title is string &&
+        data.title.size() >= 1 &&
+        data.title.size() <= 120 &&
+        data.content is string &&
+        data.content.size() >= 1 &&
+        data.content.size() <= 4000 &&
+        data.entryType is string &&
+        data.entryType.size() >= 1 &&
+        data.entryType.size() <= 40 &&
+        data.entryType in [
+          'Special Interest Idea',
+          'Working Paper & Notes',
+          'Job Step Reflection',
+          'Collab & Trade Plan'
+        ] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 5: TreeProgress
+    function isValidTreeProgress(data) {
+      return data.keys().hasAll([
+          'uid',
+          'tryingTokens',
+          'gatheringTokens',
+          'treehouseTokens',
+          'ownedFurnishings',
+          'sharesCompleted',
+          'welcomeCheckedIn',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'tryingTokens',
+          'gatheringTokens',
+          'treehouseTokens',
+          'ownedFurnishings',
+          'sharesCompleted',
+          'welcomeCheckedIn',
+          'dailyStreak',
+          'bestStreak',
+          'lastStreakDate',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.tryingTokens is int &&
+        data.tryingTokens >= 0 &&
+        data.tryingTokens <= 99999 &&
+        data.gatheringTokens is int &&
+        data.gatheringTokens >= 0 &&
+        data.gatheringTokens <= 99999 &&
+        data.treehouseTokens is int &&
+        data.treehouseTokens >= 0 &&
+        data.treehouseTokens <= 99999 &&
+        isValidFurnishingList(data.ownedFurnishings) &&
+        data.sharesCompleted is int &&
+        data.sharesCompleted >= 0 &&
+        data.sharesCompleted <= 99999 &&
+        data.welcomeCheckedIn is bool &&
+        (!('dailyStreak' in data) || (data.dailyStreak is int && data.dailyStreak >= 0 && data.dailyStreak <= 99999)) &&
+        (!('bestStreak' in data) || (data.bestStreak is int && data.bestStreak >= 0 && data.bestStreak <= 99999)) &&
+        (!('lastStreakDate' in data) || (
+          data.lastStreakDate is string &&
+          data.lastStreakDate.size() <= 10 &&
+          (data.lastStreakDate == '' || data.lastStreakDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$'))
+        )) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 6: ToolOfTrade
+    function isValidToolOfTrade(data) {
+      return data.keys().hasAll([
+          'ownerId',
+          'username',
+          'toolName',
+          'tradeCategory',
+          'visualKind',
+          'showAndTellStory',
+          'isSharedShowAndTell',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'ownerId',
+          'username',
+          'toolName',
+          'tradeCategory',
+          'visualKind',
+          'showAndTellStory',
+          'isSharedShowAndTell',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.ownerId is string &&
+        data.ownerId.size() >= 1 &&
+        data.ownerId.size() <= 128 &&
+        data.ownerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.ownerId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.username is string &&
+        data.username.size() >= 2 &&
+        data.username.size() <= 40 &&
+        data.toolName is string &&
+        data.toolName.size() >= 2 &&
+        data.toolName.size() <= 60 &&
+        data.tradeCategory is string &&
+        data.tradeCategory.size() >= 1 &&
+        data.tradeCategory.size() <= 40 &&
+        data.tradeCategory in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Community Outreach',
+          'Botanical & Essential Oils'
+        ] &&
+        data.visualKind is string &&
+        data.visualKind.size() >= 1 &&
+        data.visualKind.size() <= 32 &&
+        data.visualKind in [
+          'joinery_plane',
+          'precision_calipers',
+          'loom_shuttle',
+          'soldering_iron_kit',
+          'botanical_press',
+          'outreach_compass_kit',
+          'agarwood_alembic_still',
+          'amber_bottling_kit'
+        ] &&
+        data.showAndTellStory is string &&
+        data.showAndTellStory.size() >= 10 &&
+        data.showAndTellStory.size() <= 600 &&
+        data.isSharedShowAndTell is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 7: StoreListing
+    function isValidStoreListing(data) {
+      return data.keys().hasAll([
+          'sellerId',
+          'sellerName',
+          'itemKind',
+          'title',
+          'craftNote',
+          'priceTokens',
+          'status',
+          'buyerId',
+          'proceedsClaimed',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'sellerId',
+          'sellerName',
+          'itemKind',
+          'title',
+          'craftNote',
+          'priceTokens',
+          'status',
+          'buyerId',
+          'proceedsClaimed',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.sellerId is string &&
+        data.sellerId.size() >= 1 &&
+        data.sellerId.size() <= 128 &&
+        data.sellerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.sellerName is string &&
+        data.sellerName.size() >= 2 &&
+        data.sellerName.size() <= 40 &&
+        data.itemKind is string &&
+        data.itemKind.size() >= 1 &&
+        data.itemKind.size() <= 32 &&
+        data.itemKind in [
+          'brass_hanging_lantern',
+          'amber_floor_lantern',
+          'starlight_garland',
+          'cedar_reading_lamp',
+          'woven_sanctuary_rug',
+          'fern_planter_box'
+        ] &&
+        data.title is string &&
+        data.title.size() >= 3 &&
+        data.title.size() <= 80 &&
+        data.craftNote is string &&
+        data.craftNote.size() >= 8 &&
+        data.craftNote.size() <= 400 &&
+        data.priceTokens is int &&
+        data.priceTokens >= 1 &&
+        data.priceTokens <= 50 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['available', 'sold', 'cancelled'] &&
+        data.buyerId is string &&
+        data.buyerId.size() <= 128 &&
+        (
+          (data.status in ['available', 'cancelled'] &&
+            data.buyerId == '' &&
+            data.proceedsClaimed == false &&
+            data.sellerId == request.auth.uid) ||
+          (data.status == 'sold' &&
+            data.buyerId.size() >= 1 &&
+            data.buyerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+            data.buyerId != data.sellerId &&
+            (data.sellerId == request.auth.uid || data.buyerId == request.auth.uid || isVerifiedAdminEmail()))
+        ) &&
+        data.proceedsClaimed is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 8: ServiceProvider
+    function isValidServiceProvider(data) {
+      return data.keys().hasAll([
+          'providerId',
+          'displayName',
+          'providerRole',
+          'specialtySummary',
+          'neuroAccommodations',
+          'sessionMode',
+          'availabilityStatus',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'providerId',
+          'displayName',
+          'providerRole',
+          'specialtySummary',
+          'neuroAccommodations',
+          'sessionMode',
+          'availabilityStatus',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.providerId is string &&
+        data.providerId.size() >= 1 &&
+        data.providerId.size() <= 128 &&
+        data.providerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.providerId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.displayName is string &&
+        data.displayName.size() >= 2 &&
+        data.displayName.size() <= 50 &&
+        data.providerRole is string &&
+        data.providerRole.size() >= 1 &&
+        data.providerRole.size() <= 64 &&
+        data.providerRole in [
+          'Pre-Crisis Intervention Counsellor',
+          'Crisis Coaching Specialist',
+          'Neurobiologically-Aware Skills & Trade Trainer'
+        ] &&
+        data.specialtySummary is string &&
+        data.specialtySummary.size() >= 10 &&
+        data.specialtySummary.size() <= 500 &&
+        data.neuroAccommodations is string &&
+        data.neuroAccommodations.size() >= 6 &&
+        data.neuroAccommodations.size() <= 300 &&
+        data.sessionMode is string &&
+        data.sessionMode.size() >= 1 &&
+        data.sessionMode.size() <= 40 &&
+        data.sessionMode in [
+          'Live Collab Workbench',
+          'Async Written Coaching',
+          'Paced 1-on-1 Trade Bench'
+        ] &&
+        data.availabilityStatus is string &&
+        data.availabilityStatus.size() >= 1 &&
+        data.availabilityStatus.size() <= 16 &&
+        data.availabilityStatus in ['available', 'paused', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 9: ArtisanItem
+    function isValidArtisanItem(data) {
+      return data.keys().hasAll([
+          'makerId',
+          'makerName',
+          'title',
+          'category',
+          'materialsAndDimensions',
+          'story',
+          'priceCents',
+          'stockCount',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'makerId',
+          'makerName',
+          'title',
+          'category',
+          'materialsAndDimensions',
+          'story',
+          'priceCents',
+          'stockCount',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.makerId is string &&
+        data.makerId.size() >= 1 &&
+        data.makerId.size() <= 128 &&
+        data.makerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.makerId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.makerName is string &&
+        data.makerName.size() >= 2 &&
+        data.makerName.size() <= 40 &&
+        data.title is string &&
+        data.title.size() >= 3 &&
+        data.title.size() <= 80 &&
+        data.category is string &&
+        data.category.size() >= 1 &&
+        data.category.size() <= 32 &&
+        data.category in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Sensory & Calm Tools'
+        ] &&
+        data.materialsAndDimensions is string &&
+        data.materialsAndDimensions.size() >= 6 &&
+        data.materialsAndDimensions.size() <= 240 &&
+        data.story is string &&
+        data.story.size() >= 10 &&
+        data.story.size() <= 500 &&
+        data.priceCents is int &&
+        data.priceCents >= 300 &&
+        data.priceCents <= 250000 &&
+        data.stockCount is int &&
+        data.stockCount >= 0 &&
+        data.stockCount <= 100 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['active', 'sold_out', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 10: PrivacyConsent (UK/EU GDPR Article 7(1))
+    function isValidPrivacyConsent(data) {
+      return data.keys().hasAll([
+          'uid',
+          'policyVersion',
+          'localDeviceStorage',
+          'cloudProgressSync',
+          'privateJournalCloudSync',
+          'communityAttributionConsent',
+          'liveCollabPresenceConsent',
+          'usePseudonym',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'policyVersion',
+          'localDeviceStorage',
+          'cloudProgressSync',
+          'privateJournalCloudSync',
+          'communityAttributionConsent',
+          'liveCollabPresenceConsent',
+          'usePseudonym',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.uid == request.auth.uid &&
+        data.policyVersion is string &&
+        data.policyVersion.size() >= 2 &&
+        data.policyVersion.size() <= 32 &&
+        data.localDeviceStorage is bool &&
+        data.cloudProgressSync is bool &&
+        data.privateJournalCloudSync is bool &&
+        data.communityAttributionConsent is bool &&
+        data.liveCollabPresenceConsent is bool &&
+        data.usePseudonym is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 11: AdminRecord
+    function isValidAdminRecord(data) {
+      return data.keys().hasAll(['uid', 'handle', 'createdAt', 'updatedAt']) &&
+        data.keys().hasOnly(['uid', 'handle', 'createdAt', 'updatedAt']) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.handle is string &&
+        data.handle.size() >= 2 &&
+        data.handle.size() <= 40 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 12: TreetopApplication (Sign-In Kiosk & Admin-Approved Treetop Token Gate)
+    function isValidTreetopApplication(data) {
+      return data.keys().hasAll([
+          'applicantId',
+          'displayName',
+          'specialInterestJourney',
+          'preferredTradeTrack',
+          'supervisionContext',
+          'status',
+          'treetopTokenGranted',
+          'tokenCode',
+          'adminNote',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'applicantId',
+          'displayName',
+          'specialInterestJourney',
+          'preferredTradeTrack',
+          'supervisionContext',
+          'status',
+          'treetopTokenGranted',
+          'tokenCode',
+          'adminNote',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.applicantId is string &&
+        data.applicantId.size() >= 1 &&
+        data.applicantId.size() <= 128 &&
+        data.applicantId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.displayName is string &&
+        data.displayName.size() >= 2 &&
+        data.displayName.size() <= 40 &&
+        data.specialInterestJourney is string &&
+        data.specialInterestJourney.size() >= 15 &&
+        data.specialInterestJourney.size() <= 1200 &&
+        data.preferredTradeTrack is string &&
+        data.preferredTradeTrack.size() >= 1 &&
+        data.preferredTradeTrack.size() <= 48 &&
+        data.preferredTradeTrack in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Digital & Systems Craft',
+          'Botanical & Community Outreach'
+        ] &&
+        data.supervisionContext is string &&
+        data.supervisionContext.size() >= 1 &&
+        data.supervisionContext.size() <= 48 &&
+        data.supervisionContext in [
+          'Competent Adult (18+)',
+          'With Parent Approval',
+          'With Carer Approval',
+          'With Competent Adult Supporter'
+        ] &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['pending', 'approved', 'declined'] &&
+        data.treetopTokenGranted is bool &&
+        data.tokenCode is string &&
+        data.tokenCode.size() <= 32 &&
+        data.adminNote is string &&
+        data.adminNote.size() <= 300 &&
+        (
+          (data.status in ['pending', 'declined'] &&
+            data.treetopTokenGranted == false &&
+            data.tokenCode == '') ||
+          (data.status == 'approved' &&
+            data.treetopTokenGranted == true &&
+            data.tokenCode.size() >= 6 &&
+            data.tokenCode.matches('^TTK-[A-Z0-9\\-]+$'))
+        ) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 13: PgCertNote (PG Cert Autism & Mental Health Student in Training)
+    function isValidPgCertNote(data) {
+      return data.keys().hasAll([
+          'authorId',
+          'studentHandle',
+          'moduleTheme',
+          'title',
+          'studyReflection',
+          'practiceTakeaway',
+          'visibility',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'authorId',
+          'studentHandle',
+          'moduleTheme',
+          'title',
+          'studyReflection',
+          'practiceTakeaway',
+          'visibility',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.authorId is string &&
+        data.authorId.size() >= 1 &&
+        data.authorId.size() <= 128 &&
+        data.authorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.studentHandle is string &&
+        data.studentHandle.size() >= 2 &&
+        data.studentHandle.size() <= 50 &&
+        data.moduleTheme is string &&
+        data.moduleTheme.size() >= 1 &&
+        data.moduleTheme.size() <= 64 &&
+        data.moduleTheme in [
+          'Monotropism & Special Interest Flow',
+          'Double Empathy & Peer Belonging',
+          'Autistic Burnout & Sensory Pacing',
+          'Predictable Environments & Co-Regulation',
+          'Safeguarding & Supported Decision-Making'
+        ] &&
+        data.title is string &&
+        data.title.size() >= 4 &&
+        data.title.size() <= 120 &&
+        data.studyReflection is string &&
+        data.studyReflection.size() >= 20 &&
+        data.studyReflection.size() <= 3000 &&
+        data.practiceTakeaway is string &&
+        data.practiceTakeaway.size() >= 10 &&
+        data.practiceTakeaway.size() <= 600 &&
+        data.visibility is string &&
+        data.visibility.size() >= 1 &&
+        data.visibility.size() <= 16 &&
+        data.visibility in ['published', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 14: CanopyWorkshop (33m Treetop Canopy Rota)
+    function isValidCanopyWorkshop(data) {
+      return data.keys().hasAll([
+          'hostId',
+          'hostName',
+          'title',
+          'tradeCategory',
+          'specialInterestFocus',
+          'rotaSlotLabel',
+          'sensoryPacingNote',
+          'overflowPlatform',
+          'overflowSummary',
+          'maxParticipants',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'hostId',
+          'hostName',
+          'title',
+          'tradeCategory',
+          'specialInterestFocus',
+          'rotaSlotLabel',
+          'sensoryPacingNote',
+          'overflowPlatform',
+          'overflowSummary',
+          'maxParticipants',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.hostId is string &&
+        data.hostId.size() >= 1 &&
+        data.hostId.size() <= 128 &&
+        data.hostId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.hostName is string &&
+        data.hostName.size() >= 2 &&
+        data.hostName.size() <= 40 &&
+        data.title is string &&
+        data.title.size() >= 4 &&
+        data.title.size() <= 90 &&
+        data.tradeCategory is string &&
+        data.tradeCategory.size() >= 1 &&
+        data.tradeCategory.size() <= 48 &&
+        data.tradeCategory in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Digital & Systems Craft',
+          'Botanical & Community Outreach'
+        ] &&
+        data.specialInterestFocus is string &&
+        data.specialInterestFocus.size() >= 6 &&
+        data.specialInterestFocus.size() <= 280 &&
+        data.rotaSlotLabel is string &&
+        data.rotaSlotLabel.size() >= 4 &&
+        data.rotaSlotLabel.size() <= 80 &&
+        data.sensoryPacingNote is string &&
+        data.sensoryPacingNote.size() >= 6 &&
+        data.sensoryPacingNote.size() <= 240 &&
+        data.overflowPlatform is string &&
+        data.overflowPlatform.size() >= 1 &&
+        data.overflowPlatform.size() <= 40 &&
+        data.overflowPlatform in [
+          'Canopy Only (No External Overflow)',
+          'Zoom Supervised Meet-Up',
+          'Facebook Moderated Craft Group',
+          'Other Moderated Social Media'
+        ] &&
+        data.overflowSummary is string &&
+        data.overflowSummary.size() >= 6 &&
+        data.overflowSummary.size() <= 300 &&
+        data.maxParticipants is int &&
+        data.maxParticipants >= 2 &&
+        data.maxParticipants <= 30 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['scheduled', 'completed', 'cancelled'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 15: WorkshopRegistration (Safeguarding & Adult Approval Gate)
+    function isValidWorkshopRegistration(data) {
+      return data.keys().hasAll([
+          'workshopId',
+          'attendeeId',
+          'attendeeName',
+          'wantsSocialOverflow',
+          'adultApprovalType',
+          'adultApprovalConfirmed',
+          'appropriatenessConfirmed',
+          'safeguardingNote',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'workshopId',
+          'attendeeId',
+          'attendeeName',
+          'wantsSocialOverflow',
+          'adultApprovalType',
+          'adultApprovalConfirmed',
+          'appropriatenessConfirmed',
+          'safeguardingNote',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.workshopId is string &&
+        data.workshopId.size() >= 1 &&
+        data.workshopId.size() <= 128 &&
+        data.workshopId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.attendeeId is string &&
+        data.attendeeId.size() >= 1 &&
+        data.attendeeId.size() <= 128 &&
+        data.attendeeId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.attendeeId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.attendeeName is string &&
+        data.attendeeName.size() >= 2 &&
+        data.attendeeName.size() <= 40 &&
+        data.wantsSocialOverflow is bool &&
+        data.adultApprovalType is string &&
+        data.adultApprovalType.size() >= 1 &&
+        data.adultApprovalType.size() <= 48 &&
+        data.adultApprovalConfirmed is bool &&
+        data.appropriatenessConfirmed is bool &&
+        (
+          (data.wantsSocialOverflow == false &&
+            data.adultApprovalType == 'Not Requesting External Overflow') ||
+          (data.wantsSocialOverflow == true &&
+            data.adultApprovalConfirmed == true &&
+            data.appropriatenessConfirmed == true &&
+            data.adultApprovalType in [
+              'Self (Competent Adult 18+)',
+              'Parent Approval Confirmed',
+              'Carer Approval Confirmed',
+              'Competent Adult Supporter Confirmed'
+            ])
+        ) &&
+        data.safeguardingNote is string &&
+        data.safeguardingNote.size() <= 240 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['registered', 'cancelled'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 16: WorkshopOverflowDetail (Protected Zoom/Facebook/Social Join Details)
+    function isValidWorkshopOverflowDetail(data) {
+      return data.keys().hasAll([
+          'workshopId',
+          'hostId',
+          'platformLabel',
+          'joinInstructionsAndHandle',
+          'moderationRules',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'workshopId',
+          'hostId',
+          'platformLabel',
+          'joinInstructionsAndHandle',
+          'moderationRules',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.workshopId is string &&
+        data.workshopId.size() >= 1 &&
+        data.workshopId.size() <= 128 &&
+        data.workshopId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.hostId is string &&
+        data.hostId.size() >= 1 &&
+        data.hostId.size() <= 128 &&
+        data.hostId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.platformLabel is string &&
+        data.platformLabel.size() >= 2 &&
+        data.platformLabel.size() <= 60 &&
+        data.joinInstructionsAndHandle is string &&
+        data.joinInstructionsAndHandle.size() >= 6 &&
+        data.joinInstructionsAndHandle.size() <= 400 &&
+        data.moderationRules is string &&
+        data.moderationRules.size() >= 6 &&
+        data.moderationRules.size() <= 300 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 17: SpecialInterestPathway (Entry Kiosk Personal Special-Interest-to-Job Dashboard)
+    function isValidInterestPathway(data) {
+      return data.keys().hasAll([
+          'uid',
+          'entrantHandle',
+          'specialInterest',
+          'potentialJobRole',
+          'tradeTrack',
+          'comfortableNextStep',
+          'readinessStage',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'entrantHandle',
+          'specialInterest',
+          'potentialJobRole',
+          'tradeTrack',
+          'comfortableNextStep',
+          'readinessStage',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.entrantHandle is string &&
+        data.entrantHandle.size() >= 2 &&
+        data.entrantHandle.size() <= 40 &&
+        data.specialInterest is string &&
+        data.specialInterest.size() >= 2 &&
+        data.specialInterest.size() <= 120 &&
+        data.potentialJobRole is string &&
+        data.potentialJobRole.size() >= 2 &&
+        data.potentialJobRole.size() <= 120 &&
+        data.tradeTrack is string &&
+        data.tradeTrack.size() >= 1 &&
+        data.tradeTrack.size() <= 48 &&
+        data.tradeTrack in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Digital & Systems Craft',
+          'Botanical & Community Outreach'
+        ] &&
+        data.comfortableNextStep is string &&
+        data.comfortableNextStep.size() <= 360 &&
+        data.readinessStage is string &&
+        data.readinessStage.size() >= 1 &&
+        data.readinessStage.size() <= 32 &&
+        data.readinessStage in [
+          'Exploring Curiosity',
+          'Practicing Craft',
+          'Ready for Trade Rota',
+          'Active Job Step'
+        ] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 18: CraftedBottleListing (Agarwood Bark Essential Oil & Labelled Wares)
+    function isValidCraftedBottle(data) {
+      return data.keys().hasAll([
+          'makerId',
+          'makerName',
+          'productTitle',
+          'labelHeadline',
+          'labelBatchNote',
+          'barkOriginAndProcess',
+          'bottleSizeMl',
+          'saleVenue',
+          'pricePence',
+          'priceTokens',
+          'stockCount',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'makerId',
+          'makerName',
+          'productTitle',
+          'labelHeadline',
+          'labelBatchNote',
+          'barkOriginAndProcess',
+          'bottleSizeMl',
+          'saleVenue',
+          'pricePence',
+          'priceTokens',
+          'stockCount',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.makerId is string &&
+        data.makerId.size() >= 1 &&
+        data.makerId.size() <= 128 &&
+        data.makerId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.makerId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.makerName is string &&
+        data.makerName.size() >= 2 &&
+        data.makerName.size() <= 40 &&
+        data.productTitle is string &&
+        data.productTitle.size() >= 3 &&
+        data.productTitle.size() <= 80 &&
+        data.labelHeadline is string &&
+        data.labelHeadline.size() >= 2 &&
+        data.labelHeadline.size() <= 40 &&
+        data.labelBatchNote is string &&
+        data.labelBatchNote.size() >= 2 &&
+        data.labelBatchNote.size() <= 80 &&
+        data.barkOriginAndProcess is string &&
+        data.barkOriginAndProcess.size() >= 10 &&
+        data.barkOriginAndProcess.size() <= 500 &&
+        data.bottleSizeMl is int &&
+        data.bottleSizeMl in [5, 10, 15, 30] &&
+        data.saleVenue is string &&
+        data.saleVenue.size() >= 1 &&
+        data.saleVenue.size() <= 16 &&
+        data.saleVenue in ['welcome_area', 'canopy', 'both'] &&
+        data.pricePence is int &&
+        data.pricePence >= 300 &&
+        data.pricePence <= 50000 &&
+        data.priceTokens is int &&
+        data.priceTokens >= 1 &&
+        data.priceTokens <= 50 &&
+        data.stockCount is int &&
+        data.stockCount >= 0 &&
+        data.stockCount <= 50 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['on_sale', 'sold_out', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 19: CanopyPaypalItem (33m Treetop Canopy PayPal Maker Store)
+    function isValidCanopyPaypalItem(data) {
+      return data.keys().hasAll([
+          'sellerId',
+          'sellerName',
+          'title',
+          'tradeCategory',
+          'materialsSpec',
+          'craftStory',
+          'sellerBenchTag',
+          'priceCents',
+          'stockCount',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'sellerId',
+          'sellerName',
+          'title',
+          'tradeCategory',
+          'materialsSpec',
+          'craftStory',
+          'sellerBenchTag',
+          'priceCents',
+          'stockCount',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.sellerId is string &&
+        data.sellerId.size() >= 1 &&
+        data.sellerId.size() <= 128 &&
+        data.sellerId.matches('^[A-Za-z0-9_-]{1,128}$') &&
+        data.sellerName is string &&
+        data.sellerName.size() >= 2 &&
+        data.sellerName.size() <= 40 &&
+        data.title is string &&
+        data.title.size() >= 3 &&
+        data.title.size() <= 80 &&
+        data.tradeCategory is string &&
+        data.tradeCategory.size() >= 1 &&
+        data.tradeCategory.size() <= 40 &&
+        data.tradeCategory in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Community Outreach',
+          'Botanical & Essential Oils'
+        ] &&
+        data.materialsSpec is string &&
+        data.materialsSpec.size() >= 5 &&
+        data.materialsSpec.size() <= 200 &&
+        data.craftStory is string &&
+        data.craftStory.size() >= 10 &&
+        data.craftStory.size() <= 600 &&
+        data.sellerBenchTag is string &&
+        data.sellerBenchTag.size() <= 50 &&
+        data.priceCents is int &&
+        data.priceCents >= 300 &&
+        data.priceCents <= 250000 &&
+        data.stockCount is int &&
+        data.stockCount >= 0 &&
+        data.stockCount <= 100 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['active', 'sold_out', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 20: ShoeCharacterProfile (0m Welcome Area Shoe & Wellington Boot Characters)
+    function isValidShoeCharacterProfile(data) {
+      return data.keys().hasAll([
+          'uid',
+          'shoeKind',
+          'colorway',
+          'characterNickname',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'shoeKind',
+          'colorway',
+          'characterNickname',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[A-Za-z0-9_-]{1,128}$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.shoeKind is string &&
+        data.shoeKind.size() >= 1 &&
+        data.shoeKind.size() <= 32 &&
+        data.shoeKind in [
+          'wellington_boots',
+          'safety_wellington_boots',
+          'steel_toe_work_boots',
+          'artisan_work_shoes',
+          'timber_rigger_boots',
+          'canvas_maker_shoes'
+        ] &&
+        data.colorway is string &&
+        data.colorway.size() >= 1 &&
+        data.colorway.size() <= 32 &&
+        data.colorway in [
+          'forest_welly_green',
+          'sunflower_welly_yellow',
+          'heritage_oak_tan',
+          'oxblood_leather',
+          'harbour_navy',
+          'charcoal_slate'
+        ] &&
+        data.characterNickname is string &&
+        data.characterNickname.size() >= 2 &&
+        data.characterNickname.size() <= 36 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 21: ChillPodState (33m Mezzanine Private Sensory Chill Pods — Strictly 1 Per Person)
+    function isValidChillPodState(data) {
+      return data.keys().hasAll([
+          'podId',
+          'podLabel',
+          'occupantId',
+          'occupantName',
+          'occupancyStatus',
+          'fanEnabled',
+          'heaterEnabled',
+          'lightsOffCalm',
+          'flotationEnabled',
+          'quiltType',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'podId',
+          'podLabel',
+          'occupantId',
+          'occupantName',
+          'occupancyStatus',
+          'fanEnabled',
+          'heaterEnabled',
+          'lightsOffCalm',
+          'flotationEnabled',
+          'quiltType',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.podId is string &&
+        data.podId.size() >= 5 &&
+        data.podId.size() <= 16 &&
+        data.podId in ['pod_1', 'pod_2', 'pod_3', 'pod_4'] &&
+        data.podLabel is string &&
+        data.podLabel.size() >= 3 &&
+        data.podLabel.size() <= 40 &&
+        data.occupantId is string &&
+        data.occupantId.size() <= 128 &&
+        (data.occupantId == '' || data.occupantId.matches('^[a-zA-Z0-9_\\-]+$')) &&
+        data.occupantName is string &&
+        data.occupantName.size() <= 40 &&
+        data.occupancyStatus is string &&
+        data.occupancyStatus.size() >= 1 &&
+        data.occupancyStatus.size() <= 16 &&
+        data.occupancyStatus in ['vacant', 'occupied'] &&
+        data.fanEnabled is bool &&
+        data.heaterEnabled is bool &&
+        !(data.fanEnabled == true && data.heaterEnabled == true) &&
+        data.lightsOffCalm is bool &&
+        data.flotationEnabled is bool &&
+        data.quiltType is string &&
+        data.quiltType.size() >= 1 &&
+        data.quiltType.size() <= 24 &&
+        data.quiltType in ['none', 'vegan', 'natural_duck_feather'] &&
+        (
+          (data.occupancyStatus == 'vacant' &&
+            data.occupantId == '' &&
+            data.occupantName == '' &&
+            data.fanEnabled == false &&
+            data.heaterEnabled == false &&
+            data.lightsOffCalm == false &&
+            data.flotationEnabled == false &&
+            data.quiltType == 'none') ||
+          (data.occupancyStatus == 'occupied' &&
+            data.occupantId.size() >= 1 &&
+            data.occupantName.size() >= 2)
+        ) &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 22: JobCentreVacancy (Heritage Pegged Vacancy Card Rack)
+    function isValidJobCentreVacancy(data) {
+      return data.keys().hasAll([
+          'referenceCode',
+          'jobTitle',
+          'tradeCategory',
+          'locationZone',
+          'pacingStyle',
+          'cardSummary',
+          'keySteps',
+          'collaborationMode',
+          'collaborationOpen',
+          'rewardTokens',
+          'creatorId',
+          'creatorName',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'referenceCode',
+          'jobTitle',
+          'tradeCategory',
+          'locationZone',
+          'pacingStyle',
+          'cardSummary',
+          'keySteps',
+          'collaborationMode',
+          'collaborationOpen',
+          'rewardTokens',
+          'creatorId',
+          'creatorName',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.referenceCode is string &&
+        data.referenceCode.size() >= 4 &&
+        data.referenceCode.size() <= 16 &&
+        data.referenceCode.matches('^JC-[A-Z0-9\\-]+$') &&
+        data.jobTitle is string &&
+        data.jobTitle.size() >= 3 &&
+        data.jobTitle.size() <= 90 &&
+        data.tradeCategory is string &&
+        data.tradeCategory.size() >= 1 &&
+        data.tradeCategory.size() <= 48 &&
+        data.tradeCategory in [
+          'Woodcraft & Joinery',
+          'Metalwork & Lanterns',
+          'Textiles & Weaving',
+          'Repair & Maker Tools',
+          'Digital & Systems Craft',
+          'Botanical & Community Outreach',
+          'Botanical & Essential Oils'
+        ] &&
+        data.locationZone is string &&
+        data.locationZone.size() >= 1 &&
+        data.locationZone.size() <= 48 &&
+        data.locationZone in [
+          '0m Courtyard Workbench',
+          '12m Ascent Relay',
+          '33m Canopy Workshop',
+          '33m Mezzanine Library & Refreshments',
+          'Community Outreach Rota'
+        ] &&
+        data.pacingStyle is string &&
+        data.pacingStyle.size() >= 1 &&
+        data.pacingStyle.size() <= 32 &&
+        data.pacingStyle in [
+          'Self-Paced Solo',
+          'Paired Quiet Bench',
+          'Small Collab Crew (2-4)',
+          'Flexible Drop-In'
+        ] &&
+        data.cardSummary is string &&
+        data.cardSummary.size() >= 10 &&
+        data.cardSummary.size() <= 700 &&
+        data.keySteps is string &&
+        data.keySteps.size() >= 6 &&
+        data.keySteps.size() <= 500 &&
+        data.collaborationMode is string &&
+        data.collaborationMode.size() >= 1 &&
+        data.collaborationMode.size() <= 40 &&
+        data.collaborationMode in [
+          'Solo or Optional Buddy',
+          'Open Team-Up & Skill Swap',
+          'Mentor + Apprentice Pair',
+          'Shared Outreach Crew'
+        ] &&
+        data.collaborationOpen is bool &&
+        data.rewardTokens is int &&
+        data.rewardTokens >= 1 &&
+        data.rewardTokens <= 15 &&
+        data.creatorId is string &&
+        data.creatorId.size() >= 1 &&
+        data.creatorId.size() <= 128 &&
+        data.creatorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.creatorId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.creatorName is string &&
+        data.creatorName.size() >= 2 &&
+        data.creatorName.size() <= 40 &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['open', 'filled', 'archived'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 23: JobCentreCollaborator (Multi-User Team-Up Pledge on Vacancy Card)
+    function isValidJobCentreCollaborator(data) {
+      return data.keys().hasAll([
+          'vacancyId',
+          'memberId',
+          'memberName',
+          'collabRole',
+          'pledgeNote',
+          'preferredStation',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'vacancyId',
+          'memberId',
+          'memberName',
+          'collabRole',
+          'pledgeNote',
+          'preferredStation',
+          'status',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.vacancyId is string &&
+        data.vacancyId.size() >= 1 &&
+        data.vacancyId.size() <= 128 &&
+        data.vacancyId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        data.memberId is string &&
+        data.memberId.size() >= 1 &&
+        data.memberId.size() <= 128 &&
+        data.memberId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.memberId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.memberName is string &&
+        data.memberName.size() >= 2 &&
+        data.memberName.size() <= 40 &&
+        data.collabRole is string &&
+        data.collabRole.size() >= 1 &&
+        data.collabRole.size() <= 32 &&
+        data.collabRole in [
+          'Lead Maker',
+          'Co-Maker Buddy',
+          'Quiet Prep & Sorting',
+          'Finishing & Labelling',
+          'Outreach Helper'
+        ] &&
+        data.pledgeNote is string &&
+        data.pledgeNote.size() >= 4 &&
+        data.pledgeNote.size() <= 280 &&
+        data.preferredStation is string &&
+        data.preferredStation.size() >= 1 &&
+        data.preferredStation.size() <= 32 &&
+        data.preferredStation in [
+          'Ground Courtyard',
+          'Canopy Workbench',
+          'Mezzanine Library Desk',
+          'Async Written Notes'
+        ] &&
+        data.status is string &&
+        data.status.size() >= 1 &&
+        data.status.size() <= 16 &&
+        data.status in ['active', 'completed', 'stepped_back'] &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Validation Blueprint 24: UxBetaFeedback (Public Beta UX Testing Notes)
+    function isValidUxBetaFeedback(data) {
+      return data.keys().hasAll([
+          'authorId',
+          'testerHandle',
+          'focusArea',
+          'easeScore',
+          'workedWell',
+          'improvementIdea',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'authorId',
+          'testerHandle',
+          'focusArea',
+          'easeScore',
+          'workedWell',
+          'improvementIdea',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.authorId is string &&
+        data.authorId.size() >= 1 &&
+        data.authorId.size() <= 128 &&
+        data.authorId.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.authorId == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.testerHandle is string &&
+        data.testerHandle.size() >= 2 &&
+        data.testerHandle.size() <= 40 &&
+        data.focusArea is string &&
+        data.focusArea.size() >= 1 &&
+        data.focusArea.size() <= 48 &&
+        data.focusArea in [
+          'Overall Navigation & Readability',
+          'Old-Style Job Centre & Collaboration',
+          'Mezzanine Library & Refreshments',
+          'Private Sensory Chill Pods',
+          'Entry Kiosk & Canopy Lift'
+        ] &&
+        data.easeScore is int &&
+        data.easeScore >= 1 &&
+        data.easeScore <= 5 &&
+        data.workedWell is string &&
+        data.workedWell.size() >= 4 &&
+        data.workedWell.size() <= 600 &&
+        data.improvementIdea is string &&
+        data.improvementIdea.size() <= 600 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidHabitCompletedList(items) {
+      return items is list &&
+        items.size() <= 10 &&
+        (items.size() == 0 || (items[0] is string && items[0].size() >= 1 && items[0].size() <= 32)) &&
+        items.hasOnly([
+          'focus_15m',
+          'community_outreach',
+          'job_slip_step',
+          'skill_practice',
+          'sensory_pacing',
+          'custom_1',
+          'custom_2',
+          'custom_3',
+          'custom_4',
+          'custom_5'
+        ]);
+    }
+
+    function isValidCustomHabitLabels(items) {
+      return items is list &&
+        items.size() <= 5 &&
+        (items.size() < 1 || (items[0] is string && items[0].size() >= 2 && items[0].size() <= 60)) &&
+        (items.size() < 2 || (items[1] is string && items[1].size() >= 2 && items[1].size() <= 60)) &&
+        (items.size() < 3 || (items[2] is string && items[2].size() >= 2 && items[2].size() <= 60)) &&
+        (items.size() < 4 || (items[3] is string && items[3].size() >= 2 && items[3].size() <= 60)) &&
+        (items.size() < 5 || (items[4] is string && items[4].size() >= 2 && items[4].size() <= 60));
+    }
+
+    // Validation Blueprint 25: DailyHabitTracker (PassiveUserDashboard Daily Mastery Habits & Tree-Climbing Energy Points)
+    function isValidDailyHabitTracker(data) {
+      return data.keys().hasAll([
+          'uid',
+          'activeDate',
+          'energyPoints',
+          'lifetimeEnergyEarned',
+          'totalMilestonesLogged',
+          'dailyStreak',
+          'bestStreak',
+          'completedIdsToday',
+          'customHabitLabels',
+          'lastMilestoneLabel',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'activeDate',
+          'energyPoints',
+          'lifetimeEnergyEarned',
+          'totalMilestonesLogged',
+          'dailyStreak',
+          'bestStreak',
+          'completedIdsToday',
+          'customHabitLabels',
+          'lastMilestoneLabel',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.activeDate is string &&
+        data.activeDate.size() == 10 &&
+        data.activeDate.matches('^[0-9]{4}-[0-9]{2}-[0-9]{2}$') &&
+        data.energyPoints is int &&
+        data.energyPoints >= 0 &&
+        data.energyPoints <= 99999 &&
+        data.lifetimeEnergyEarned is int &&
+        data.lifetimeEnergyEarned >= 0 &&
+        data.lifetimeEnergyEarned <= 999999 &&
+        data.lifetimeEnergyEarned >= data.energyPoints &&
+        data.totalMilestonesLogged is int &&
+        data.totalMilestonesLogged >= 0 &&
+        data.totalMilestonesLogged <= 99999 &&
+        data.dailyStreak is int &&
+        data.dailyStreak >= 0 &&
+        data.dailyStreak <= 99999 &&
+        data.bestStreak is int &&
+        data.bestStreak >= 0 &&
+        data.bestStreak <= 99999 &&
+        data.bestStreak >= data.dailyStreak &&
+        isValidHabitCompletedList(data.completedIdsToday) &&
+        isValidCustomHabitLabels(data.customHabitLabels) &&
+        data.lastMilestoneLabel is string &&
+        data.lastMilestoneLabel.size() <= 80 &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    function isValidBankOfTreetopLedger(data) {
+      return data.keys().hasAll([
+          'uid',
+          'selectedBundleId',
+          'customInterestGoal',
+          'savedUnits',
+          'lifetimeUnitsSaved',
+          'bundlesRequisitioned',
+          'exchequerChecksLogged',
+          'disclaimerAccepted',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.keys().hasOnly([
+          'uid',
+          'selectedBundleId',
+          'customInterestGoal',
+          'savedUnits',
+          'lifetimeUnitsSaved',
+          'bundlesRequisitioned',
+          'exchequerChecksLogged',
+          'disclaimerAccepted',
+          'createdAt',
+          'updatedAt'
+        ]) &&
+        data.uid is string &&
+        data.uid.size() >= 1 &&
+        data.uid.size() <= 128 &&
+        data.uid.matches('^[a-zA-Z0-9_\\-]+$') &&
+        (data.uid == request.auth.uid || isVerifiedAdminEmail()) &&
+        data.selectedBundleId is string &&
+        data.selectedBundleId.size() >= 1 &&
+        data.selectedBundleId.size() <= 40 &&
+        data.selectedBundleId in [
+          'stock_cedar_joinery',
+          'stock_agarwood_vials',
+          'stock_drazella_publishing',
+          'stock_brass_lanterns',
+          'stock_plant_dyed_wool',
+          'stock_custom_interest'
+        ] &&
+        data.customInterestGoal is string &&
+        data.customInterestGoal.size() <= 90 &&
+        data.savedUnits is int &&
+        data.savedUnits >= 0 &&
+        data.savedUnits <= 9999 &&
+        data.lifetimeUnitsSaved is int &&
+        data.lifetimeUnitsSaved >= 0 &&
+        data.lifetimeUnitsSaved <= 99999 &&
+        data.lifetimeUnitsSaved >= data.savedUnits &&
+        data.bundlesRequisitioned is int &&
+        data.bundlesRequisitioned >= 0 &&
+        data.bundlesRequisitioned <= 9999 &&
+        data.exchequerChecksLogged is int &&
+        data.exchequerChecksLogged >= 0 &&
+        data.exchequerChecksLogged <= 9999 &&
+        data.disclaimerAccepted is bool &&
+        data.createdAt is timestamp &&
+        data.updatedAt is timestamp;
+    }
+
+    // Connectivity probe path for boot-time getDocFromServer check
+    match /test/{docId} {
+      allow get: if isSignedIn() && docId == 'connection';
+      allow list, create, update, delete: if false;
+    }
+
+    // Collection 1: Public Non-PII Member Profiles
+    match /publicProfiles/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        (isOwner(userId) || (resource != null && existing().uid == userId));
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isOwner(userId) &&
+        uidUnchanged() &&
+        hasRequiredFields(['uid', 'username', 'createdAt', 'updatedAt']) &&
+        hasOnlyAllowedFields(['uid', 'username', 'createdAt', 'updatedAt']) &&
+        isValidPublicProfile(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidPublicProfile(incoming()) &&
+        uidNotModified() &&
+        areImmutableFieldsUnchanged(['uid', 'createdAt']) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (isOwner(userId) &&
+            existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['username', 'updatedAt']))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(userId) &&
+        isOwner(userId) &&
+        existing().uid == request.auth.uid;
+    }
+
+    // Collection 2: Ground Floor Job & Collab Board Posts
+    match /communityPosts/{postId} {
+      allow get: if isSignedIn() &&
+        isValidId(postId) &&
+        resource != null &&
+        (existing().visibility == 'published' || existing().authorId == request.auth.uid || isAdmin());
+
+      allow list: if isSignedIn() &&
+        existing().visibility == 'published';
+
+      allow create: if isVerifiedUser() &&
+        isValidId(postId) &&
+        isValidCommunityPost(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().visibility == 'published' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().authorId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().authorId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(postId) &&
+        isValidCommunityPost(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().authorId == request.auth.uid &&
+            existing().visibility == 'published' &&
+            incoming().visibility == 'published' &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'username',
+              'category',
+              'title',
+              'message',
+              'updatedAt'
+            ])) ||
+          (existing().authorId == request.auth.uid &&
+            existing().visibility == 'published' &&
+            incoming().visibility == 'archived' &&
+            incoming().username == existing().username &&
+            incoming().category == existing().category &&
+            incoming().title == existing().title &&
+            incoming().message == existing().message &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['visibility', 'updatedAt']))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(postId) &&
+        existing().authorId == request.auth.uid) ||
+        (isAdmin() && isValidId(postId));
+    }
+
+    // Collection 3: Canopy Summit Personal Trade Area, Secure Flooring & Placed Lanterns
+    match /canopyStudios/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        (resource == null || existing().uid == request.auth.uid);
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidCanopyStudio(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidCanopyStudio(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (userId == request.auth.uid &&
+            existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'studioName',
+              'tradeFocus',
+              'floorStyle',
+              'trimAccent',
+              'safetyGateClosed',
+              'furnishedItems',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        existing().uid == request.auth.uid;
+    }
+
+    // Collection 4: Private Chronological Personal Journal Entries
+    match /journalEntries/{entryId} {
+      allow get: if isSignedIn() &&
+        isValidId(entryId) &&
+        resource != null &&
+        existing().uid == request.auth.uid;
+
+      allow list: if isSignedIn() &&
+        existing().uid == request.auth.uid;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(entryId) &&
+        isValidJournalEntry(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(entryId) &&
+        isValidJournalEntry(incoming()) && (
+          (existing().uid == request.auth.uid &&
+            incoming().uid == existing().uid &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'title',
+              'content',
+              'entryType',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(entryId) &&
+        existing().uid == request.auth.uid;
+    }
+
+    // Collection 5: Member Welcome Area, Trying/Gathering/Treehouse Tokens, Owned Furnishings & Daily Streak
+    match /treeProgress/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        (userId == request.auth.uid || isAdmin()) &&
+        (resource == null || existing().uid == userId);
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidTreeProgress(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidTreeProgress(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (userId == request.auth.uid &&
+            existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'tryingTokens',
+              'gatheringTokens',
+              'treehouseTokens',
+              'ownedFurnishings',
+              'sharesCompleted',
+              'welcomeCheckedIn',
+              'dailyStreak',
+              'bestStreak',
+              'lastStreakDate',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        existing().uid == request.auth.uid;
+    }
+
+    // Collection 6: Canopy Tools of the Trade Show & Tell Locker
+    match /toolsOfTrade/{toolId} {
+      allow get: if isSignedIn() &&
+        isValidId(toolId) &&
+        resource != null &&
+        (existing().ownerId == request.auth.uid || existing().isSharedShowAndTell == true || isAdmin());
+
+      allow list: if isSignedIn() &&
+        (existing().ownerId == request.auth.uid || existing().isSharedShowAndTell == true);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(toolId) &&
+        isValidToolOfTrade(incoming()) &&
+        incoming().ownerId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().ownerId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().ownerId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(toolId) &&
+        isValidToolOfTrade(incoming()) &&
+        incoming().ownerId == existing().ownerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().ownerId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'username',
+              'toolName',
+              'tradeCategory',
+              'visualKind',
+              'showAndTellStory',
+              'isSharedShowAndTell',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(toolId) &&
+        existing().ownerId == request.auth.uid;
+    }
+
+    // Collection 7: Player-to-Player Canopy Lanterns & Furnishings Store
+    match /storeListings/{listingId} {
+      allow get: if isSignedIn() &&
+        isValidId(listingId) &&
+        resource != null &&
+        (existing().status == 'available' ||
+          existing().sellerId == request.auth.uid ||
+          existing().buyerId == request.auth.uid);
+
+      allow list: if isSignedIn() &&
+        (existing().status == 'available' ||
+          existing().sellerId == request.auth.uid ||
+          existing().buyerId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(listingId) &&
+        isValidStoreListing(incoming()) &&
+        incoming().sellerId == request.auth.uid &&
+        incoming().status == 'available' &&
+        incoming().buyerId == '' &&
+        incoming().proceedsClaimed == false &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().sellerId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().sellerId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(listingId) &&
+        isValidStoreListing(incoming()) &&
+        incoming().sellerId == existing().sellerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().sellerId == request.auth.uid &&
+            existing().status == 'available' &&
+            incoming().itemKind == existing().itemKind &&
+            incoming().buyerId == '' &&
+            incoming().proceedsClaimed == false &&
+            incoming().status in ['available', 'cancelled'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'sellerName',
+              'title',
+              'craftNote',
+              'priceTokens',
+              'status',
+              'updatedAt'
+            ])) ||
+          (existing().sellerId != request.auth.uid &&
+            existing().status == 'available' &&
+            incoming().status == 'sold' &&
+            incoming().buyerId == request.auth.uid &&
+            incoming().sellerName == existing().sellerName &&
+            incoming().itemKind == existing().itemKind &&
+            incoming().title == existing().title &&
+            incoming().craftNote == existing().craftNote &&
+            incoming().priceTokens == existing().priceTokens &&
+            incoming().proceedsClaimed == false &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'buyerId',
+              'updatedAt'
+            ])) ||
+          (existing().sellerId == request.auth.uid &&
+            existing().status == 'sold' &&
+            existing().proceedsClaimed == false &&
+            incoming().status == 'sold' &&
+            incoming().proceedsClaimed == true &&
+            incoming().sellerName == existing().sellerName &&
+            incoming().itemKind == existing().itemKind &&
+            incoming().title == existing().title &&
+            incoming().craftNote == existing().craftNote &&
+            incoming().priceTokens == existing().priceTokens &&
+            incoming().buyerId == existing().buyerId &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'proceedsClaimed',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(listingId) &&
+        existing().sellerId == request.auth.uid &&
+        (existing().status in ['available', 'cancelled'] || existing().proceedsClaimed == true);
+    }
+
+    // Collection 8: Autism-Affirming & Neurobiologically-Aware Service Providers Directory
+    match /serviceProviders/{providerId} {
+      allow get: if isSignedIn() &&
+        isValidId(providerId) &&
+        resource != null &&
+        (existing().availabilityStatus in ['available', 'paused'] ||
+          existing().providerId == request.auth.uid);
+
+      allow list: if isSignedIn() &&
+        (existing().availabilityStatus == 'available' ||
+          existing().providerId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(providerId) &&
+        providerId == request.auth.uid &&
+        isValidServiceProvider(incoming()) &&
+        incoming().providerId == request.auth.uid &&
+        incoming().availabilityStatus == 'available' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().providerId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().providerId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(providerId) &&
+        isValidServiceProvider(incoming()) &&
+        incoming().providerId == existing().providerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (providerId == request.auth.uid &&
+            existing().providerId == request.auth.uid &&
+            existing().availabilityStatus in ['available', 'paused'] &&
+            incoming().availabilityStatus in ['available', 'paused'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName',
+              'providerRole',
+              'specialtySummary',
+              'neuroAccommodations',
+              'sessionMode',
+              'availabilityStatus',
+              'updatedAt'
+            ])) ||
+          (providerId == request.auth.uid &&
+            existing().providerId == request.auth.uid &&
+            existing().availabilityStatus in ['available', 'paused'] &&
+            incoming().availabilityStatus == 'archived' &&
+            incoming().displayName == existing().displayName &&
+            incoming().providerRole == existing().providerRole &&
+            incoming().specialtySummary == existing().specialtySummary &&
+            incoming().neuroAccommodations == existing().neuroAccommodations &&
+            incoming().sessionMode == existing().sessionMode &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'availabilityStatus',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(providerId) &&
+        providerId == request.auth.uid &&
+        existing().providerId == request.auth.uid;
+    }
+
+    // Collection 9: Welcome Area Handcrafted Artisan Items
+    match /artisanItems/{itemId} {
+      allow get: if isSignedIn() &&
+        isValidId(itemId) &&
+        resource != null &&
+        (existing().status in ['active', 'sold_out'] ||
+          existing().makerId == request.auth.uid);
+
+      allow list: if isSignedIn() &&
+        (existing().status == 'active' ||
+          existing().makerId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(itemId) &&
+        isValidArtisanItem(incoming()) &&
+        incoming().makerId == request.auth.uid &&
+        incoming().status == 'active' &&
+        incoming().stockCount >= 1 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().makerId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().makerId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(itemId) &&
+        isValidArtisanItem(incoming()) &&
+        incoming().makerId == existing().makerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().makerId == request.auth.uid &&
+            existing().status in ['active', 'sold_out'] &&
+            incoming().status in ['active', 'sold_out'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'makerName',
+              'title',
+              'category',
+              'materialsAndDimensions',
+              'story',
+              'priceCents',
+              'stockCount',
+              'status',
+              'updatedAt'
+            ])) ||
+          (existing().makerId == request.auth.uid &&
+            existing().status in ['active', 'sold_out'] &&
+            incoming().status == 'archived' &&
+            incoming().makerName == existing().makerName &&
+            incoming().title == existing().title &&
+            incoming().category == existing().category &&
+            incoming().materialsAndDimensions == existing().materialsAndDimensions &&
+            incoming().story == existing().story &&
+            incoming().priceCents == existing().priceCents &&
+            incoming().stockCount == existing().stockCount &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(itemId) &&
+        existing().makerId == request.auth.uid;
+    }
+
+    // Collection 10: Owner-Only UK/EU GDPR Article 7(1) Consent Records
+    match /privacyConsents/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        (resource == null || existing().uid == request.auth.uid);
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidPrivacyConsent(incoming()) &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidPrivacyConsent(incoming()) && (
+          (userId == request.auth.uid &&
+            existing().uid == request.auth.uid &&
+            incoming().uid == existing().uid &&
+            incoming().createdAt == existing().createdAt &&
+            incoming().updatedAt == request.time &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'policyVersion',
+              'localDeviceStorage',
+              'cloudProgressSync',
+              'privateJournalCloudSync',
+              'communityAttributionConsent',
+              'liveCollabPresenceConsent',
+              'usePseudonym',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        existing().uid == request.auth.uid;
+    }
+
+    // Collection 11: Trusted Workshop Administrator Records
+    match /admins/{adminId} {
+      allow get: if isSignedIn() &&
+        isValidId(adminId) &&
+        (request.auth.uid == adminId || isVerifiedAdminEmail());
+      allow list: if false;
+
+      allow create: if isVerifiedAdminEmail() &&
+        isValidId(adminId) &&
+        isValidAdminRecord(incoming()) &&
+        incoming().uid == adminId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedAdminEmail() &&
+        isValidId(adminId) &&
+        isValidAdminRecord(incoming()) && (
+          incoming().uid == existing().uid &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time &&
+          incoming().diff(existing()).affectedKeys().hasOnly(['handle', 'updatedAt'])
+        )
+      );
+
+      allow delete: if isVerifiedAdminEmail() && isValidId(adminId);
+    }
+
+    // Collection 12: Ground Sign-In Kiosk Special Interest Journey Applications & Treetop Tokens
+    match /treetopApplications/{applicantId} {
+      allow get: if isSignedIn() &&
+        isValidId(applicantId) &&
+        (applicantId == request.auth.uid || isAdmin()) &&
+        (resource == null || existing().applicantId == applicantId);
+
+      // Zero get()/exists() in allow list: evaluates existing() directly
+      allow list: if isSignedIn() &&
+        (existing().applicantId == request.auth.uid ||
+          (isVerifiedAdminEmail() && existing().status in ['pending', 'approved', 'declined']));
+
+      allow create: if isVerifiedUser() &&
+        isValidId(applicantId) &&
+        isValidTreetopApplication(incoming()) &&
+        incoming().applicantId == applicantId &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time && (
+          (applicantId == request.auth.uid &&
+            incoming().status == 'pending' &&
+            incoming().treetopTokenGranted == false &&
+            incoming().tokenCode == '' &&
+            incoming().adminNote == '') ||
+          isAdmin()
+        );
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(applicantId) &&
+        isValidTreetopApplication(incoming()) &&
+        incoming().applicantId == existing().applicantId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          // Action 1: Verified Admin Approves or Declines Application & Issues Treetop Token
+          (isAdmin() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'treetopTokenGranted',
+              'tokenCode',
+              'adminNote',
+              'updatedAt'
+            ])) ||
+          // Action 2: Applicant Revises Pending or Declined Journey Note (Still Strictly Unapproved)
+          (applicantId == request.auth.uid &&
+            existing().applicantId == request.auth.uid &&
+            existing().status in ['pending', 'declined'] &&
+            incoming().status == 'pending' &&
+            incoming().treetopTokenGranted == false &&
+            incoming().tokenCode == '' &&
+            incoming().adminNote == existing().adminNote &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'displayName',
+              'specialInterestJourney',
+              'preferredTradeTrack',
+              'supervisionContext',
+              'status',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(applicantId) &&
+        applicantId == request.auth.uid &&
+        existing().applicantId == request.auth.uid) ||
+        (isAdmin() && isValidId(applicantId));
+    }
+
+    // Collection 13: PG Cert Autism & Mental Health Student-in-Training Notes
+    match /pgCertNotes/{noteId} {
+      allow get: if isSignedIn() &&
+        isValidId(noteId) &&
+        resource != null &&
+        (existing().visibility == 'published' ||
+          existing().authorId == request.auth.uid ||
+          isAdmin());
+
+      allow list: if isSignedIn() &&
+        (existing().visibility == 'published' ||
+          existing().authorId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(noteId) &&
+        isValidPgCertNote(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().visibility == 'published' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        hasApprovedTreetopToken();
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(noteId) &&
+        isValidPgCertNote(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().authorId == request.auth.uid &&
+            existing().visibility == 'published' &&
+            incoming().visibility == 'published' &&
+            hasApprovedTreetopToken() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'studentHandle',
+              'moduleTheme',
+              'title',
+              'studyReflection',
+              'practiceTakeaway',
+              'updatedAt'
+            ])) ||
+          (existing().authorId == request.auth.uid &&
+            existing().visibility == 'published' &&
+            incoming().visibility == 'archived' &&
+            incoming().studentHandle == existing().studentHandle &&
+            incoming().moduleTheme == existing().moduleTheme &&
+            incoming().title == existing().title &&
+            incoming().studyReflection == existing().studyReflection &&
+            incoming().practiceTakeaway == existing().practiceTakeaway &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['visibility', 'updatedAt']))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(noteId) &&
+        existing().authorId == request.auth.uid) ||
+        (isAdmin() && isValidId(noteId));
+    }
+
+    // Collection 14: 33m Treetop Canopy Rota of Special Interest & Learn-a-Trade Workshops
+    match /canopyWorkshops/{workshopId} {
+      allow get: if isSignedIn() &&
+        isValidId(workshopId) &&
+        resource != null &&
+        hasApprovedTreetopToken() &&
+        (existing().status == 'scheduled' ||
+          existing().hostId == request.auth.uid ||
+          isAdmin());
+
+      allow list: if isSignedIn() &&
+        (existing().status == 'scheduled' ||
+          existing().hostId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(workshopId) &&
+        isValidCanopyWorkshop(incoming()) &&
+        incoming().hostId == request.auth.uid &&
+        incoming().status == 'scheduled' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        hasApprovedTreetopToken();
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(workshopId) &&
+        isValidCanopyWorkshop(incoming()) &&
+        incoming().hostId == existing().hostId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().hostId == request.auth.uid &&
+            existing().status == 'scheduled' &&
+            incoming().status == 'scheduled' &&
+            hasApprovedTreetopToken() &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'hostName',
+              'title',
+              'tradeCategory',
+              'specialInterestFocus',
+              'rotaSlotLabel',
+              'sensoryPacingNote',
+              'overflowPlatform',
+              'overflowSummary',
+              'maxParticipants',
+              'updatedAt'
+            ])) ||
+          (existing().hostId == request.auth.uid &&
+            existing().status == 'scheduled' &&
+            incoming().status in ['completed', 'cancelled'] &&
+            incoming().hostName == existing().hostName &&
+            incoming().title == existing().title &&
+            incoming().tradeCategory == existing().tradeCategory &&
+            incoming().specialInterestFocus == existing().specialInterestFocus &&
+            incoming().rotaSlotLabel == existing().rotaSlotLabel &&
+            incoming().sensoryPacingNote == existing().sensoryPacingNote &&
+            incoming().overflowPlatform == existing().overflowPlatform &&
+            incoming().overflowSummary == existing().overflowSummary &&
+            incoming().maxParticipants == existing().maxParticipants &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        )
+      );
+
+      allow delete: if isAdmin() && isValidId(workshopId);
+
+      // Subcollection 15: Workshop Registrations & Parent/Carer/Competent Adult Overflow Approval
+      match /registrations/{attendeeId} {
+        allow get: if isSignedIn() &&
+          isValidId(workshopId) &&
+          isValidId(attendeeId) &&
+          resource != null &&
+          exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)) &&
+          hasApprovedTreetopToken() &&
+          (attendeeId == request.auth.uid ||
+            get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)).data.hostId == request.auth.uid ||
+            isAdmin());
+
+        allow list: if isSignedIn() &&
+          existing().attendeeId == request.auth.uid;
+
+        allow create: if isVerifiedUser() &&
+          isValidId(workshopId) &&
+          isValidId(attendeeId) &&
+          attendeeId == request.auth.uid &&
+          isValidWorkshopRegistration(incoming()) &&
+          incoming().attendeeId == request.auth.uid &&
+          incoming().workshopId == workshopId &&
+          incoming().status == 'registered' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          hasApprovedTreetopToken() &&
+          exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)) &&
+          get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)).data.status == 'scheduled';
+
+        allow update: if (
+          isVerifiedUser() &&
+          isValidId(workshopId) &&
+          isValidId(attendeeId) &&
+          isValidWorkshopRegistration(incoming()) &&
+          incoming().workshopId == existing().workshopId &&
+          incoming().attendeeId == existing().attendeeId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            (attendeeId == request.auth.uid &&
+              existing().attendeeId == request.auth.uid &&
+              existing().status == 'registered' &&
+              incoming().status == 'registered' &&
+              hasApprovedTreetopToken() &&
+              exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)) &&
+              get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)).data.status == 'scheduled' &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'attendeeName',
+                'wantsSocialOverflow',
+                'adultApprovalType',
+                'adultApprovalConfirmed',
+                'appropriatenessConfirmed',
+                'safeguardingNote',
+                'updatedAt'
+              ])) ||
+            (attendeeId == request.auth.uid &&
+              existing().attendeeId == request.auth.uid &&
+              existing().status == 'registered' &&
+              incoming().status == 'cancelled' &&
+              incoming().attendeeName == existing().attendeeName &&
+              incoming().wantsSocialOverflow == existing().wantsSocialOverflow &&
+              incoming().adultApprovalType == existing().adultApprovalType &&
+              incoming().adultApprovalConfirmed == existing().adultApprovalConfirmed &&
+              incoming().appropriatenessConfirmed == existing().appropriatenessConfirmed &&
+              incoming().safeguardingNote == existing().safeguardingNote &&
+              incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+          )
+        );
+
+        allow delete: if (isVerifiedUser() &&
+          isValidId(workshopId) &&
+          isValidId(attendeeId) &&
+          attendeeId == request.auth.uid &&
+          existing().attendeeId == request.auth.uid) ||
+          (isAdmin() && isValidId(workshopId) && isValidId(attendeeId));
+      }
+
+      // Subcollection 16: Safeguarded External Zoom/Facebook/Social Overflow Access Details
+      match /overflowAccess/{detailId} {
+        allow get: if isSignedIn() &&
+          isValidId(workshopId) &&
+          detailId == 'details' &&
+          resource != null &&
+          exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)) &&
+          get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)).data.status == 'scheduled' &&
+          hasApprovedTreetopToken() && (
+            isAdmin() ||
+            get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)).data.hostId == request.auth.uid ||
+            (exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)/registrations/$(request.auth.uid)) &&
+              get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)/registrations/$(request.auth.uid)).data.status == 'registered' &&
+              get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)/registrations/$(request.auth.uid)).data.wantsSocialOverflow == true &&
+              get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)/registrations/$(request.auth.uid)).data.adultApprovalConfirmed == true &&
+              get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)/registrations/$(request.auth.uid)).data.appropriatenessConfirmed == true)
+          );
+
+        allow list: if false;
+
+        allow create: if isVerifiedUser() &&
+          isValidId(workshopId) &&
+          detailId == 'details' &&
+          isValidWorkshopOverflowDetail(incoming()) &&
+          incoming().workshopId == workshopId &&
+          incoming().hostId == request.auth.uid &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          hasApprovedTreetopToken() &&
+          (exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)) ||
+            existsAfter(/databases/$(database)/documents/canopyWorkshops/$(workshopId)));
+
+        allow update: if (
+          isVerifiedUser() &&
+          isValidId(workshopId) &&
+          detailId == 'details' &&
+          isValidWorkshopOverflowDetail(incoming()) &&
+          incoming().hostId == existing().hostId &&
+          incoming().workshopId == existing().workshopId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            (existing().hostId == request.auth.uid &&
+              hasApprovedTreetopToken() &&
+              exists(/databases/$(database)/documents/canopyWorkshops/$(workshopId)) &&
+              get(/databases/$(database)/documents/canopyWorkshops/$(workshopId)).data.status == 'scheduled' &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'platformLabel',
+                'joinInstructionsAndHandle',
+                'moderationRules',
+                'updatedAt'
+              ]))
+          )
+        );
+
+        allow delete: if isAdmin() && isValidId(workshopId) && detailId == 'details';
+      }
+    }
+
+    // Collection 17: Entry Kiosk Personal Special-Interest-to-Job Dashboard (Owner-Only Isolated)
+    match /interestPathways/{pathwayId} {
+      allow get: if isSignedIn() &&
+        isValidId(pathwayId) &&
+        resource != null &&
+        (existing().uid == request.auth.uid || isAdmin());
+
+      allow list: if isSignedIn() &&
+        existing().uid == request.auth.uid;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(pathwayId) &&
+        isValidInterestPathway(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(pathwayId) &&
+        isValidInterestPathway(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'entrantHandle',
+              'specialInterest',
+              'potentialJobRole',
+              'tradeTrack',
+              'comfortableNextStep',
+              'readinessStage',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(pathwayId) &&
+        existing().uid == request.auth.uid) ||
+        (isAdmin() && isValidId(pathwayId));
+    }
+
+    // Collection 18: Custom-Bottled & High-Contrast Labelled Wares (Agarwood Bark Essential Oil)
+    match /craftedBottles/{bottleId} {
+      allow get: if isSignedIn() &&
+        isValidId(bottleId) &&
+        resource != null &&
+        (existing().status in ['on_sale', 'sold_out'] ||
+          existing().makerId == request.auth.uid ||
+          isAdmin());
+
+      allow list: if isSignedIn() &&
+        (existing().status == 'on_sale' ||
+          existing().makerId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(bottleId) &&
+        isValidCraftedBottle(incoming()) &&
+        incoming().makerId == request.auth.uid &&
+        incoming().status == 'on_sale' &&
+        incoming().stockCount >= 1 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().makerId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().makerId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(bottleId) &&
+        isValidCraftedBottle(incoming()) &&
+        incoming().makerId == existing().makerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().makerId == request.auth.uid &&
+            existing().status in ['on_sale', 'sold_out'] &&
+            incoming().status in ['on_sale', 'sold_out'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'makerName',
+              'productTitle',
+              'labelHeadline',
+              'labelBatchNote',
+              'barkOriginAndProcess',
+              'bottleSizeMl',
+              'saleVenue',
+              'pricePence',
+              'priceTokens',
+              'stockCount',
+              'status',
+              'updatedAt'
+            ])) ||
+          (existing().makerId == request.auth.uid &&
+            existing().status in ['on_sale', 'sold_out'] &&
+            incoming().status == 'archived' &&
+            incoming().makerName == existing().makerName &&
+            incoming().productTitle == existing().productTitle &&
+            incoming().labelHeadline == existing().labelHeadline &&
+            incoming().labelBatchNote == existing().labelBatchNote &&
+            incoming().barkOriginAndProcess == existing().barkOriginAndProcess &&
+            incoming().bottleSizeMl == existing().bottleSizeMl &&
+            incoming().saleVenue == existing().saleVenue &&
+            incoming().pricePence == existing().pricePence &&
+            incoming().priceTokens == existing().priceTokens &&
+            incoming().stockCount == existing().stockCount &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'status',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(bottleId) &&
+        existing().makerId == request.auth.uid) ||
+        (isAdmin() && isValidId(bottleId));
+    }
+
+    // Collection 19: 33m Treetop Canopy PayPal Maker Store
+    match /canopyPaypalItems/{itemId} {
+      allow get: if isSignedIn() &&
+        isValidId(itemId) &&
+        resource != null &&
+        (existing().status in ['active', 'sold_out'] ||
+          existing().sellerId == request.auth.uid ||
+          isAdmin());
+
+      // Zero get()/exists() in allow list: evaluates existing() directly
+      allow list: if isSignedIn() &&
+        (existing().status == 'active' ||
+          existing().sellerId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(itemId) &&
+        isValidCanopyPaypalItem(incoming()) &&
+        incoming().sellerId == request.auth.uid &&
+        incoming().status == 'active' &&
+        incoming().stockCount >= 1 &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().sellerId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().sellerId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(itemId) &&
+        isValidCanopyPaypalItem(incoming()) &&
+        incoming().sellerId == existing().sellerId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action 1: Seller Updates Active or Sold-Out Canopy Work
+          (existing().sellerId == request.auth.uid &&
+            existing().status in ['active', 'sold_out'] &&
+            incoming().status in ['active', 'sold_out'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'sellerName',
+              'title',
+              'tradeCategory',
+              'materialsSpec',
+              'craftStory',
+              'sellerBenchTag',
+              'priceCents',
+              'stockCount',
+              'status',
+              'updatedAt'
+            ])) ||
+          // Action 2: Seller Archives Canopy Listing (Terminal State)
+          (existing().sellerId == request.auth.uid &&
+            existing().status in ['active', 'sold_out'] &&
+            incoming().status == 'archived' &&
+            incoming().sellerName == existing().sellerName &&
+            incoming().title == existing().title &&
+            incoming().tradeCategory == existing().tradeCategory &&
+            incoming().materialsSpec == existing().materialsSpec &&
+            incoming().craftStory == existing().craftStory &&
+            incoming().sellerBenchTag == existing().sellerBenchTag &&
+            incoming().priceCents == existing().priceCents &&
+            incoming().stockCount == 0 &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'stockCount',
+              'status',
+              'updatedAt'
+            ])) ||
+          // Action 3: Verified Buyer Decrements Stock Upon PayPal / Counter Purchase
+          (existing().sellerId != request.auth.uid &&
+            existing().status == 'active' &&
+            incoming().sellerName == existing().sellerName &&
+            incoming().title == existing().title &&
+            incoming().tradeCategory == existing().tradeCategory &&
+            incoming().materialsSpec == existing().materialsSpec &&
+            incoming().craftStory == existing().craftStory &&
+            incoming().sellerBenchTag == existing().sellerBenchTag &&
+            incoming().priceCents == existing().priceCents &&
+            incoming().stockCount < existing().stockCount &&
+            incoming().stockCount >= 0 &&
+            incoming().status == (incoming().stockCount == 0 ? 'sold_out' : 'active') &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'stockCount',
+              'status',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(itemId) &&
+        existing().sellerId == request.auth.uid) ||
+        (isAdmin() && isValidId(itemId));
+    }
+
+    // Collection 20: 0m Welcome Area Shoe & Wellington Boot Character Profiles (Owner-Isolated)
+    match /shoeCharacters/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        (userId == request.auth.uid || isAdmin()) &&
+        (resource == null || existing().uid == userId);
+
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidShoeCharacterProfile(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidShoeCharacterProfile(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (userId == request.auth.uid &&
+            existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'shoeKind',
+              'colorway',
+              'characterNickname',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        existing().uid == request.auth.uid) ||
+        (isAdmin() && isValidId(userId));
+    }
+
+    // Collection 21: 33m Mezzanine Private Sensory Chill Pods (Strictly 1 Per Person)
+    match /chillPodOccupancy/{podId} {
+      allow get: if isSignedIn() &&
+        isValidId(podId) &&
+        podId in ['pod_1', 'pod_2', 'pod_3', 'pod_4'];
+
+      // Zero get()/exists() in allow list: evaluates existing() directly
+      allow list: if isSignedIn() &&
+        existing().podId in ['pod_1', 'pod_2', 'pod_3', 'pod_4'];
+
+      allow create: if isVerifiedUser() &&
+        isValidId(podId) &&
+        podId in ['pod_1', 'pod_2', 'pod_3', 'pod_4'] &&
+        isValidChillPodState(incoming()) &&
+        incoming().podId == podId &&
+        incoming().occupancyStatus == 'occupied' &&
+        incoming().occupantId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(podId) &&
+        podId in ['pod_1', 'pod_2', 'pod_3', 'pod_4'] &&
+        isValidChillPodState(incoming()) &&
+        incoming().podId == existing().podId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action 1: Verified Member Enters a Vacant (or >2h Stale) Pod — Strictly 1 Per Person
+          ((existing().occupancyStatus == 'vacant' ||
+              request.time > existing().updatedAt + duration.value(2, 'h')) &&
+            incoming().occupancyStatus == 'occupied' &&
+            incoming().occupantId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'podLabel',
+              'occupantId',
+              'occupantName',
+              'occupancyStatus',
+              'fanEnabled',
+              'heaterEnabled',
+              'lightsOffCalm',
+              'flotationEnabled',
+              'quiltType',
+              'updatedAt'
+            ])) ||
+          // Action 2: Current Occupant Toggles Sensory Controls (Fan, Heater, Lights-Off Calm, Water Flotation, Vegan/Natural Duck Feather Quilt)
+          (existing().occupancyStatus == 'occupied' &&
+            existing().occupantId == request.auth.uid &&
+            incoming().occupancyStatus == 'occupied' &&
+            incoming().occupantId == request.auth.uid &&
+            incoming().podLabel == existing().podLabel &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'occupantName',
+              'fanEnabled',
+              'heaterEnabled',
+              'lightsOffCalm',
+              'flotationEnabled',
+              'quiltType',
+              'updatedAt'
+            ])) ||
+          // Action 3: Current Occupant Steps Out / Vacates Pod (Resets All Sensory Switches Off)
+          (existing().occupancyStatus == 'occupied' &&
+            existing().occupantId == request.auth.uid &&
+            incoming().occupancyStatus == 'vacant' &&
+            incoming().podLabel == existing().podLabel &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'occupantId',
+              'occupantName',
+              'occupancyStatus',
+              'fanEnabled',
+              'heaterEnabled',
+              'lightsOffCalm',
+              'flotationEnabled',
+              'quiltType',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if isAdmin() &&
+        isValidId(podId) &&
+        podId in ['pod_1', 'pod_2', 'pod_3', 'pod_4'];
+    }
+
+    // Collection 22: Old-Style Heritage Job Centre Vacancy Cards
+    match /jobCentreVacancies/{vacancyId} {
+      allow get: if isSignedIn() &&
+        isValidId(vacancyId) &&
+        (resource == null ||
+          existing().status in ['open', 'filled'] ||
+          existing().creatorId == request.auth.uid ||
+          isAdmin());
+
+      // Zero get()/exists() in allow list: evaluates existing() directly
+      allow list: if isSignedIn() &&
+        (existing().status in ['open', 'filled'] ||
+          existing().creatorId == request.auth.uid);
+
+      allow create: if isVerifiedUser() &&
+        isValidId(vacancyId) &&
+        isValidJobCentreVacancy(incoming()) &&
+        incoming().creatorId == request.auth.uid &&
+        incoming().status == 'open' &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time &&
+        (exists(/databases/$(database)/documents/publicProfiles/$(incoming().creatorId)) ||
+          existsAfter(/databases/$(database)/documents/publicProfiles/$(incoming().creatorId)));
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(vacancyId) &&
+        isValidJobCentreVacancy(incoming()) &&
+        incoming().creatorId == existing().creatorId &&
+        incoming().referenceCode == existing().referenceCode &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          // Action 1: Creator Updates Active Open or Filled Vacancy Card
+          (existing().creatorId == request.auth.uid &&
+            existing().status in ['open', 'filled'] &&
+            incoming().status in ['open', 'filled'] &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'jobTitle',
+              'tradeCategory',
+              'locationZone',
+              'pacingStyle',
+              'cardSummary',
+              'keySteps',
+              'collaborationMode',
+              'collaborationOpen',
+              'rewardTokens',
+              'creatorName',
+              'status',
+              'updatedAt'
+            ])) ||
+          // Action 2: Creator Archives Vacancy Card (Terminal State Lock)
+          (existing().creatorId == request.auth.uid &&
+            existing().status in ['open', 'filled'] &&
+            incoming().status == 'archived' &&
+            incoming().jobTitle == existing().jobTitle &&
+            incoming().tradeCategory == existing().tradeCategory &&
+            incoming().locationZone == existing().locationZone &&
+            incoming().pacingStyle == existing().pacingStyle &&
+            incoming().cardSummary == existing().cardSummary &&
+            incoming().keySteps == existing().keySteps &&
+            incoming().collaborationMode == existing().collaborationMode &&
+            incoming().collaborationOpen == existing().collaborationOpen &&
+            incoming().rewardTokens == existing().rewardTokens &&
+            incoming().creatorName == existing().creatorName &&
+            incoming().diff(existing()).affectedKeys().hasOnly(['status', 'updatedAt']))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(vacancyId) &&
+        existing().creatorId == request.auth.uid) ||
+        (isAdmin() && isValidId(vacancyId));
+
+      // Subcollection 23: Multi-User Collaborator Pledges on Job Centre Cards
+      match /collaborators/{memberId} {
+        allow get: if isSignedIn() &&
+          isValidId(vacancyId) &&
+          isValidId(memberId) &&
+          ((resource == null && memberId == request.auth.uid) ||
+            (resource != null &&
+              exists(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)) &&
+              (existing().status in ['active', 'completed'] ||
+                existing().memberId == request.auth.uid ||
+                get(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)).data.creatorId == request.auth.uid ||
+                isAdmin())));
+
+        // Zero get()/exists() in allow list: evaluates existing() directly
+        allow list: if isSignedIn() &&
+          (existing().status in ['active', 'completed'] ||
+            existing().memberId == request.auth.uid);
+
+        allow create: if isVerifiedUser() &&
+          isValidId(vacancyId) &&
+          isValidId(memberId) &&
+          memberId == request.auth.uid &&
+          isValidJobCentreCollaborator(incoming()) &&
+          incoming().vacancyId == vacancyId &&
+          incoming().memberId == request.auth.uid &&
+          incoming().status == 'active' &&
+          incoming().createdAt == request.time &&
+          incoming().updatedAt == request.time &&
+          exists(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)) &&
+          get(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)).data.status == 'open' &&
+          get(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)).data.collaborationOpen == true;
+
+        allow update: if (
+          isVerifiedUser() &&
+          isValidId(vacancyId) &&
+          isValidId(memberId) &&
+          isValidJobCentreCollaborator(incoming()) &&
+          incoming().vacancyId == existing().vacancyId &&
+          incoming().memberId == existing().memberId &&
+          incoming().createdAt == existing().createdAt &&
+          incoming().updatedAt == request.time && (
+            isAdmin() ||
+            (memberId == request.auth.uid &&
+              existing().memberId == request.auth.uid &&
+              exists(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)) &&
+              get(/databases/$(database)/documents/jobCentreVacancies/$(vacancyId)).data.status in ['open', 'filled'] &&
+              incoming().diff(existing()).affectedKeys().hasOnly([
+                'memberName',
+                'collabRole',
+                'pledgeNote',
+                'preferredStation',
+                'status',
+                'updatedAt'
+              ]))
+          )
+        );
+
+        allow delete: if (isVerifiedUser() &&
+          isValidId(vacancyId) &&
+          isValidId(memberId) &&
+          memberId == request.auth.uid &&
+          existing().memberId == request.auth.uid) ||
+          (isAdmin() && isValidId(vacancyId) && isValidId(memberId));
+      }
+    }
+
+    // Collection 24: Public Beta UX Testing Feedback (Owner/Admin Isolated)
+    match /uxBetaFeedback/{feedbackId} {
+      allow get: if isSignedIn() &&
+        isValidId(feedbackId) &&
+        resource != null &&
+        (existing().authorId == request.auth.uid || isAdmin());
+
+      // Zero get()/exists() in allow list: evaluates existing() directly
+      allow list: if isSignedIn() &&
+        (existing().authorId == request.auth.uid ||
+          (isVerifiedAdminEmail() && existing().easeScore >= 1));
+
+      allow create: if isVerifiedUser() &&
+        isValidId(feedbackId) &&
+        isValidUxBetaFeedback(incoming()) &&
+        incoming().authorId == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(feedbackId) &&
+        isValidUxBetaFeedback(incoming()) &&
+        incoming().authorId == existing().authorId &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (existing().authorId == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'testerHandle',
+              'focusArea',
+              'easeScore',
+              'workedWell',
+              'improvementIdea',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(feedbackId) &&
+        existing().authorId == request.auth.uid) ||
+        (isAdmin() && isValidId(feedbackId));
+    }
+
+    // Collection 25: Daily Mastery Habit Tracker & Tree-Climbing Energy Points (Owner/Admin Isolated)
+    match /dailyHabitTrackers/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        (userId == request.auth.uid || isAdmin()) &&
+        (resource == null || existing().uid == userId);
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidDailyHabitTracker(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidDailyHabitTracker(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (userId == request.auth.uid &&
+            existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'activeDate',
+              'energyPoints',
+              'lifetimeEnergyEarned',
+              'totalMilestonesLogged',
+              'dailyStreak',
+              'bestStreak',
+              'completedIdsToday',
+              'customHabitLabels',
+              'lastMilestoneLabel',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        existing().uid == request.auth.uid) ||
+        (isAdmin() && isValidId(userId));
+    }
+
+    // Collection 26: Bank of Treetop Symbolic Special-Interest Stock Savings Ledger (NOT a Real Bank — Owner/Admin Isolated)
+    match /bankOfTreetopLedgers/{userId} {
+      allow get: if isSignedIn() &&
+        isValidId(userId) &&
+        (userId == request.auth.uid || isAdmin()) &&
+        (resource == null || existing().uid == userId);
+      allow list: if false;
+
+      allow create: if isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        isValidBankOfTreetopLedger(incoming()) &&
+        incoming().uid == request.auth.uid &&
+        incoming().disclaimerAccepted == true &&
+        incoming().createdAt == request.time &&
+        incoming().updatedAt == request.time;
+
+      allow update: if (
+        isVerifiedUser() &&
+        isValidId(userId) &&
+        isValidBankOfTreetopLedger(incoming()) &&
+        incoming().uid == existing().uid &&
+        incoming().disclaimerAccepted == true &&
+        incoming().createdAt == existing().createdAt &&
+        incoming().updatedAt == request.time && (
+          isAdmin() ||
+          (userId == request.auth.uid &&
+            existing().uid == request.auth.uid &&
+            incoming().diff(existing()).affectedKeys().hasOnly([
+              'selectedBundleId',
+              'customInterestGoal',
+              'savedUnits',
+              'lifetimeUnitsSaved',
+              'bundlesRequisitioned',
+              'exchequerChecksLogged',
+              'disclaimerAccepted',
+              'updatedAt'
+            ]))
+        )
+      );
+
+      allow delete: if (isVerifiedUser() &&
+        isValidId(userId) &&
+        userId == request.auth.uid &&
+        existing().uid == request.auth.uid) ||
+        (isAdmin() && isValidId(userId));
+    }
+  }
+}
+

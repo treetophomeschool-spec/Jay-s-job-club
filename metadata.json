@@ -1,0 +1,6 @@
+{
+  "name": "Jay's Job Club — The Canopy Lift",
+  "description": "A user-paced 3D treehouse pulley workshop game for turning a special interest into a trade or community outreach.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

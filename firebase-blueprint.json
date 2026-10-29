@@ -1,0 +1,2219 @@
+{
+  "entities": {
+    "PublicProfile": {
+      "title": "PublicProfile",
+      "description": "Public non-PII workshop member display profile for Jay's Job Club.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the member.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "description": "Public display username shown on Ground Floor Job & Collab Board posts, Show & Tell tools, Service Provider cards, and Artisan Shop listings.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the profile was last updated."
+        }
+      },
+      "required": ["uid", "username", "createdAt", "updatedAt"]
+    },
+    "CommunityPost": {
+      "title": "CommunityPost",
+      "description": "A message posted to the Ground Floor Job & Collab Board.",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the poster, referencing PublicProfile.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "description": "Display username of the poster.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "category": {
+          "type": "string",
+          "description": "Classification of the community post.",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "Job Opportunity",
+            "Collaboration Request",
+            "Resource Share",
+            "General Advice"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "Concise headline of the post.",
+          "minLength": 3,
+          "maxLength": 100
+        },
+        "message": {
+          "type": "string",
+          "description": "Detailed body content of the post.",
+          "minLength": 10,
+          "maxLength": 1500
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Lifecycle state of the post (archived is terminal).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["published", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the post was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the post was last updated."
+        }
+      },
+      "required": [
+        "authorId",
+        "username",
+        "category",
+        "title",
+        "message",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CanopyStudio": {
+      "title": "CanopyStudio",
+      "description": "Per-player customizable Personal Trade Area, Secure Flooring, and placed Canopy Lanterns/Furnishings in the Canopy Summit.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the studio owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "studioName": {
+          "type": "string",
+          "description": "Custom nameplate title for the player's Canopy Personal Trade Area.",
+          "minLength": 2,
+          "maxLength": 48
+        },
+        "tradeFocus": {
+          "type": "string",
+          "description": "Special interest or trade specialty showcased in the Canopy booth.",
+          "minLength": 1,
+          "maxLength": 40,
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Community Outreach"
+          ]
+        },
+        "floorStyle": {
+          "type": "string",
+          "description": "Selected secure non-slip flooring surface in the Canopy Treehouse.",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "interlocking_oak",
+            "nonslip_slate",
+            "cork_sanctuary",
+            "herringbone_cedar"
+          ]
+        },
+        "trimAccent": {
+          "type": "string",
+          "description": "Selected safety toe-kick curb and hatch guard accent finish.",
+          "minLength": 1,
+          "maxLength": 24,
+          "enum": [
+            "warm_brass",
+            "forged_iron",
+            "forest_sage",
+            "terracotta_clay"
+          ]
+        },
+        "safetyGateClosed": {
+          "type": "boolean",
+          "description": "Whether the Lift arrival bay safety hatch gate is latched closed for a continuous floor."
+        },
+        "furnishedItems": {
+          "type": "array",
+          "description": "Bounded allowlist (max 6) of active Canopy lanterns and furnishings displayed inside the 3D Treehouse."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the studio configuration was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the studio configuration was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "studioName",
+        "tradeFocus",
+        "floorStyle",
+        "trimAccent",
+        "safetyGateClosed",
+        "furnishedItems",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "Private chronological Personal Journal entry for capturing special interest ideas, working papers, job steps, and neuro-affirming pacing notes.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the private journal entry owner.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "title": {
+          "type": "string",
+          "description": "Headline of the journal entry.",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "content": {
+          "type": "string",
+          "description": "Body notes, special interest papers, or reflection content.",
+          "minLength": 1,
+          "maxLength": 4000
+        },
+        "entryType": {
+          "type": "string",
+          "description": "Focus tag connecting the journal note to special interests, papers, job steps, or collab/trade.",
+          "minLength": 1,
+          "maxLength": 40,
+          "enum": [
+            "Special Interest Idea",
+            "Working Paper & Notes",
+            "Job Step Reflection",
+            "Collab & Trade Plan"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when the journal entry was first recorded."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the journal entry was last edited."
+        }
+      },
+      "required": [
+        "uid",
+        "title",
+        "content",
+        "entryType",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "TreeProgress": {
+      "title": "TreeProgress",
+      "description": "Per-player Welcome Area check-in, Trying/Gathering/Treehouse Tokens, owned Canopy furnishings, and Daily Mastery Streak.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the member.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "tryingTokens": {
+          "type": "number",
+          "description": "Lower-level Trying Tokens earned for posting on the job board, checking in at the Welcome Area, and practicing skills."
+        },
+        "gatheringTokens": {
+          "type": "number",
+          "description": "Second-level Gathering Tokens earned for gathering special interest items, ideas, or papers along the tree and journal."
+        },
+        "treehouseTokens": {
+          "type": "number",
+          "description": "Treehouse Tokens awarded for sound, humane, and ethical trade/outreach ideas and streak milestones."
+        },
+        "ownedFurnishings": {
+          "type": "array",
+          "description": "Bounded allowlist (max 6) of Canopy lantern and furnishing kinds owned by the member."
+        },
+        "sharesCompleted": {
+          "type": "number",
+          "description": "Count of Collab, Trade Building, Job Steps, or Trade Sharing exchanges completed."
+        },
+        "welcomeCheckedIn": {
+          "type": "boolean",
+          "description": "Whether the player has completed the Welcome Area orientation check-in."
+        },
+        "dailyStreak": {
+          "type": "number",
+          "description": "Current consecutive daily mastery streak for accessing the Canopy or updating the Journal (with 1-day grace buffer)."
+        },
+        "bestStreak": {
+          "type": "number",
+          "description": "Highest consecutive daily mastery streak achieved by the member."
+        },
+        "lastStreakDate": {
+          "type": "string",
+          "description": "Local YYYY-MM-DD calendar date of the most recent recorded Canopy or Journal mastery engagement.",
+          "minLength": 0,
+          "maxLength": 10,
+          "pattern": "^(|[0-9]{4}-[0-9]{2}-[0-9]{2})$"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when tree progress was initialized."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when tree progress was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "tryingTokens",
+        "gatheringTokens",
+        "treehouseTokens",
+        "ownedFurnishings",
+        "sharesCompleted",
+        "welcomeCheckedIn",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ToolOfTrade": {
+      "title": "ToolOfTrade",
+      "description": "A stored Tool of the Trade kept in a member's Canopy Show & Tell Locker and optionally shared with fellow members.",
+      "type": "object",
+      "properties": {
+        "ownerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the member storing the tool.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "username": {
+          "type": "string",
+          "description": "Display username of the craftsperson.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "toolName": {
+          "type": "string",
+          "description": "Name of the Tool of the Trade.",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "tradeCategory": {
+          "type": "string",
+          "description": "Trade or outreach discipline associated with this tool.",
+          "minLength": 1,
+          "maxLength": 40,
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Community Outreach",
+            "Botanical & Essential Oils"
+          ]
+        },
+        "visualKind": {
+          "type": "string",
+          "description": "3D model identifier displayed on the Canopy Show & Tell pegboard and Tools of the Trade locker.",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "joinery_plane",
+            "precision_calipers",
+            "loom_shuttle",
+            "soldering_iron_kit",
+            "botanical_press",
+            "outreach_compass_kit",
+            "agarwood_alembic_still",
+            "amber_bottling_kit"
+          ]
+        },
+        "showAndTellStory": {
+          "type": "string",
+          "description": "Ethical, constructive explanation of how this tool is used for craft, repair, or community outreach.",
+          "minLength": 10,
+          "maxLength": 600
+        },
+        "isSharedShowAndTell": {
+          "type": "boolean",
+          "description": "Whether this tool is displayed in the Club Show & Tell Gallery for fellow members."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when the tool was stowed."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the tool entry was last updated."
+        }
+      },
+      "required": [
+        "ownerId",
+        "username",
+        "toolName",
+        "tradeCategory",
+        "visualKind",
+        "showAndTellStory",
+        "isSharedShowAndTell",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "StoreListing": {
+      "title": "StoreListing",
+      "description": "Player-crafted Canopy lantern or furnishing listed in the Player Store for purchase with Treehouse Tokens.",
+      "type": "object",
+      "properties": {
+        "sellerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the member offering the crafted item.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "sellerName": {
+          "type": "string",
+          "description": "Display handle of the seller.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "itemKind": {
+          "type": "string",
+          "description": "3D Canopy lantern or furnishing identifier.",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "brass_hanging_lantern",
+            "amber_floor_lantern",
+            "starlight_garland",
+            "cedar_reading_lamp",
+            "woven_sanctuary_rug",
+            "fern_planter_box"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "Custom listing title for the crafted Canopy item.",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "craftNote": {
+          "type": "string",
+          "description": "Maker note describing the craftsmanship and materials.",
+          "minLength": 8,
+          "maxLength": 400
+        },
+        "priceTokens": {
+          "type": "number",
+          "description": "Price in Treehouse Tokens (integer 1..50)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Marketplace lifecycle state (cancelled is terminal; sold locks once proceedsClaimed is true).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["available", "sold", "cancelled"]
+        },
+        "buyerId": {
+          "type": "string",
+          "description": "Empty string while available/cancelled, or Firebase Auth UID of the purchasing player once sold.",
+          "minLength": 0,
+          "maxLength": 128
+        },
+        "proceedsClaimed": {
+          "type": "boolean",
+          "description": "Whether the seller has claimed the Treehouse Token proceeds after sale."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when listed."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "sellerId",
+        "sellerName",
+        "itemKind",
+        "title",
+        "craftNote",
+        "priceTokens",
+        "status",
+        "buyerId",
+        "proceedsClaimed",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ServiceProvider": {
+      "title": "ServiceProvider",
+      "description": "Autism-affirming & neurobiologically-aware service provider listing (Pre-Crisis Intervention Counsellor, Crisis Coaching Specialist, or Neurobiologically-Aware Skills & Trade Trainer).",
+      "type": "object",
+      "properties": {
+        "providerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the registered practitioner or trade trainer.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Public non-PII practitioner or mentor handle.",
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "providerRole": {
+          "type": "string",
+          "description": "Primary support or training discipline.",
+          "minLength": 1,
+          "maxLength": 64,
+          "enum": [
+            "Pre-Crisis Intervention Counsellor",
+            "Crisis Coaching Specialist",
+            "Neurobiologically-Aware Skills & Trade Trainer"
+          ]
+        },
+        "specialtySummary": {
+          "type": "string",
+          "description": "Concrete summary of skills taught, pre-crisis de-escalation support, or trade mentoring approach.",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "neuroAccommodations": {
+          "type": "string",
+          "description": "Explicit sensory, pacing, and communication accommodations honored in sessions.",
+          "minLength": 6,
+          "maxLength": 300
+        },
+        "sessionMode": {
+          "type": "string",
+          "description": "Preferred collaboration and session format.",
+          "minLength": 1,
+          "maxLength": 40,
+          "enum": [
+            "Live Collab Workbench",
+            "Async Written Coaching",
+            "Paced 1-on-1 Trade Bench"
+          ]
+        },
+        "availabilityStatus": {
+          "type": "string",
+          "description": "Directory visibility state (archived is terminal).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["available", "paused", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when registered."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "providerId",
+        "displayName",
+        "providerRole",
+        "specialtySummary",
+        "neuroAccommodations",
+        "sessionMode",
+        "availabilityStatus",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ArtisanItem": {
+      "title": "ArtisanItem",
+      "description": "Physical handcrafted item listed in the Ground Floor Welcome Area Artisan Market for purchase via PayPal.",
+      "type": "object",
+      "properties": {
+        "makerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the artisan craftsperson.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "makerName": {
+          "type": "string",
+          "description": "Public display name of the maker.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "title": {
+          "type": "string",
+          "description": "Handcrafted product title.",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "category": {
+          "type": "string",
+          "description": "Handcrafted craft category.",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Sensory & Calm Tools"
+          ]
+        },
+        "materialsAndDimensions": {
+          "type": "string",
+          "description": "Tactile materials, natural finishes, and physical dimensions.",
+          "minLength": 6,
+          "maxLength": 240
+        },
+        "story": {
+          "type": "string",
+          "description": "Craftsmanship story and maker notes.",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "priceCents": {
+          "type": "number",
+          "description": "Price in GBP pence / minor units (integer 300..250000, i.e., £3.00 to £2,500.00)."
+        },
+        "stockCount": {
+          "type": "number",
+          "description": "Available handcrafted physical stock (integer 0..100)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Shop listing lifecycle state (archived is terminal).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["active", "sold_out", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when listed."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "makerId",
+        "makerName",
+        "title",
+        "category",
+        "materialsAndDimensions",
+        "story",
+        "priceCents",
+        "stockCount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PrivacyConsent": {
+      "title": "PrivacyConsent",
+      "description": "Owner-only UK/EU GDPR Article 7(1) demonstrable granular consent record containing zero PII.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the consenting member.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "policyVersion": {
+          "type": "string",
+          "description": "Version identifier of the UK/EU GDPR Privacy Notice acknowledged by the user.",
+          "minLength": 2,
+          "maxLength": 32
+        },
+        "localDeviceStorage": {
+          "type": "boolean",
+          "description": "Whether the user consented to non-essential local browser storage caching (PECR Reg. 6)."
+        },
+        "cloudProgressSync": {
+          "type": "boolean",
+          "description": "Whether the user consented to syncing Canopy Studio, tokens, and Daily Streak to Firestore (Art. 6(1)(a))."
+        },
+        "privateJournalCloudSync": {
+          "type": "boolean",
+          "description": "Whether the user explicitly consented to encrypted-in-transit private Personal Journal cloud backup (Art. 6(1)(a) & Art. 9(2)(a))."
+        },
+        "communityAttributionConsent": {
+          "type": "boolean",
+          "description": "Whether the user consented to publishing their chosen handle on community boards, tools, providers, or shop listings (Art. 6(1)(a))."
+        },
+        "liveCollabPresenceConsent": {
+          "type": "boolean",
+          "description": "Whether the user consented to real-time WebSocket collaboration room & 3D lift presence (Art. 6(1)(a))."
+        },
+        "usePseudonym": {
+          "type": "boolean",
+          "description": "Privacy-by-default flag keeping real Google account names hidden behind a workshop alias (Art. 25)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when consent record was first created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when consent choices were last updated or withdrawn."
+        }
+      },
+      "required": [
+        "uid",
+        "policyVersion",
+        "localDeviceStorage",
+        "cloudProgressSync",
+        "privateJournalCloudSync",
+        "communityAttributionConsent",
+        "liveCollabPresenceConsent",
+        "usePseudonym",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "AdminRecord": {
+      "title": "AdminRecord",
+      "description": "Trusted workshop administrator record for approving Treetop Token entry applications and moderating Canopy workshops (zero PII).",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Firebase Auth UID of the administrator.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "handle": {
+          "type": "string",
+          "description": "Non-PII display handle of the administrator.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when admin role was recorded."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when admin record was last updated."
+        }
+      },
+      "required": ["uid", "handle", "createdAt", "updatedAt"]
+    },
+    "TreetopApplication": {
+      "title": "TreetopApplication",
+      "description": "Ground Sign-In Kiosk entry application sharing a visitor's Special Interest Journey to request an Admin-approved Treetop Token required for entering Jay's Job Club.",
+      "type": "object",
+      "properties": {
+        "applicantId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the applicant.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Non-PII workshop alias chosen by the applicant.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "specialInterestJourney": {
+          "type": "string",
+          "description": "Applicant's response to 'We like to hear about your special interest journeys' describing their passion and trade/outreach goals.",
+          "minLength": 15,
+          "maxLength": 1200
+        },
+        "preferredTradeTrack": {
+          "type": "string",
+          "description": "Primary special-interest trade track the applicant hopes to explore.",
+          "minLength": 1,
+          "maxLength": 48,
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Digital & Systems Craft",
+            "Botanical & Community Outreach"
+          ]
+        },
+        "supervisionContext": {
+          "type": "string",
+          "description": "Safeguarding context confirming whether the applicant is a competent adult (18+) or supported by a parent, carer, or competent adult.",
+          "minLength": 1,
+          "maxLength": 48,
+          "enum": [
+            "Competent Adult (18+)",
+            "With Parent Approval",
+            "With Carer Approval",
+            "With Competent Adult Supporter"
+          ]
+        },
+        "status": {
+          "type": "string",
+          "description": "Admin review status for Treetop Token entry.",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["pending", "approved", "declined"]
+        },
+        "treetopTokenGranted": {
+          "type": "boolean",
+          "description": "True only when approved by an Admin; strictly required before entering the Treehouse or Canopy."
+        },
+        "tokenCode": {
+          "type": "string",
+          "description": "Empty string until approved, or Admin-issued Treetop Token code matching ^TTK-[A-Z0-9\\-]+$.",
+          "minLength": 0,
+          "maxLength": 32,
+          "pattern": "^(|TTK-[A-Z0-9\\-]+)$"
+        },
+        "adminNote": {
+          "type": "string",
+          "description": "Optional constructive feedback or welcome note written by the reviewing Admin.",
+          "minLength": 0,
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when the application was submitted."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the application or token status was last updated."
+        }
+      },
+      "required": [
+        "applicantId",
+        "displayName",
+        "specialInterestJourney",
+        "preferredTradeTrack",
+        "supervisionContext",
+        "status",
+        "treetopTokenGranted",
+        "tokenCode",
+        "adminNote",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "PgCertNote": {
+      "title": "PgCertNote",
+      "description": "Reflective academic and neuro-affirming practice study notes from a PG Cert Autism and Mental Health student in training.",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the PG Cert student-in-training author.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "studentHandle": {
+          "type": "string",
+          "description": "Non-PII academic study handle (e.g., PG Cert Student in Training).",
+          "minLength": 2,
+          "maxLength": 50
+        },
+        "moduleTheme": {
+          "type": "string",
+          "description": "Postgraduate Autism & Mental Health curriculum domain.",
+          "minLength": 1,
+          "maxLength": 64,
+          "enum": [
+            "Monotropism & Special Interest Flow",
+            "Double Empathy & Peer Belonging",
+            "Autistic Burnout & Sensory Pacing",
+            "Predictable Environments & Co-Regulation",
+            "Safeguarding & Supported Decision-Making"
+          ]
+        },
+        "title": {
+          "type": "string",
+          "description": "Headline of the PG Cert study note.",
+          "minLength": 4,
+          "maxLength": 120
+        },
+        "studyReflection": {
+          "type": "string",
+          "description": "Reflective PG Cert Autism & Mental Health study notes and literature synthesis.",
+          "minLength": 20,
+          "maxLength": 3000
+        },
+        "practiceTakeaway": {
+          "type": "string",
+          "description": "Concrete workshop accommodation or low-arousal practice takeaway.",
+          "minLength": 10,
+          "maxLength": 600
+        },
+        "visibility": {
+          "type": "string",
+          "description": "Publication status (archived is terminal for non-admin updates).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["published", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when published."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "authorId",
+        "studentHandle",
+        "moduleTheme",
+        "title",
+        "studyReflection",
+        "practiceTakeaway",
+        "visibility",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CanopyWorkshop": {
+      "title": "CanopyWorkshop",
+      "description": "Scheduled 33m Treetop Canopy special-interest training or learn-a-trade workshop rota slot with optional safeguarded social/video overflow.",
+      "type": "object",
+      "properties": {
+        "hostId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the workshop host.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostName": {
+          "type": "string",
+          "description": "Non-PII display handle of the trade mentor or facilitator.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "title": {
+          "type": "string",
+          "description": "Workshop title on the Treetop Canopy Rota.",
+          "minLength": 4,
+          "maxLength": 90
+        },
+        "tradeCategory": {
+          "type": "string",
+          "description": "Special-interest trade or skill discipline.",
+          "minLength": 1,
+          "maxLength": 48,
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Digital & Systems Craft",
+            "Botanical & Community Outreach"
+          ]
+        },
+        "specialInterestFocus": {
+          "type": "string",
+          "description": "Description of how a special interest connects to practical trade skills in this workshop.",
+          "minLength": 6,
+          "maxLength": 280
+        },
+        "rotaSlotLabel": {
+          "type": "string",
+          "description": "Day and UK time window on the Canopy Rota.",
+          "minLength": 4,
+          "maxLength": 80
+        },
+        "sensoryPacingNote": {
+          "type": "string",
+          "description": "Explicit sensory, communication, and pacing accommodations.",
+          "minLength": 6,
+          "maxLength": 240
+        },
+        "overflowPlatform": {
+          "type": "string",
+          "description": "External meet-up channel if the Canopy workshop overflows onto video or social platforms.",
+          "minLength": 1,
+          "maxLength": 40,
+          "enum": [
+            "Canopy Only (No External Overflow)",
+            "Zoom Supervised Meet-Up",
+            "Facebook Moderated Craft Group",
+            "Other Moderated Social Media"
+          ]
+        },
+        "overflowSummary": {
+          "type": "string",
+          "description": "Safeguarding summary describing what the optional overflow meet-up covers without exposing raw external links.",
+          "minLength": 6,
+          "maxLength": 300
+        },
+        "maxParticipants": {
+          "type": "number",
+          "description": "Maximum Canopy bench seats (integer 2..30)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Rota lifecycle status (completed and cancelled are terminal for non-admin updates).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["scheduled", "completed", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when scheduled."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "hostId",
+        "hostName",
+        "title",
+        "tradeCategory",
+        "specialInterestFocus",
+        "rotaSlotLabel",
+        "sensoryPacingNote",
+        "overflowPlatform",
+        "overflowSummary",
+        "maxParticipants",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WorkshopRegistration": {
+      "title": "WorkshopRegistration",
+      "description": "Member booking for a 33m Canopy Rota workshop including mandatory parent/carer or competent adult approval before accessing external Zoom/Facebook/Social Media overflow.",
+      "type": "object",
+      "properties": {
+        "workshopId": {
+          "type": "string",
+          "description": "Parent CanopyWorkshop ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "attendeeId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the Treetop Token holder.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "attendeeName": {
+          "type": "string",
+          "description": "Non-PII workshop handle of the attendee.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "wantsSocialOverflow": {
+          "type": "boolean",
+          "description": "Whether the attendee requests access to the external Zoom/Facebook/Social Media overflow meet-up."
+        },
+        "adultApprovalType": {
+          "type": "string",
+          "description": "Type of parent, carer, or competent adult approval recorded for external overflow.",
+          "minLength": 1,
+          "maxLength": 48,
+          "enum": [
+            "Not Requesting External Overflow",
+            "Self (Competent Adult 18+)",
+            "Parent Approval Confirmed",
+            "Carer Approval Confirmed",
+            "Competent Adult Supporter Confirmed"
+          ]
+        },
+        "adultApprovalConfirmed": {
+          "type": "boolean",
+          "description": "Must be true whenever wantsSocialOverflow is true."
+        },
+        "appropriatenessConfirmed": {
+          "type": "boolean",
+          "description": "Confirms topic appropriateness and moderated safeguarding conduct rules."
+        },
+        "safeguardingNote": {
+          "type": "string",
+          "description": "Optional non-PII safeguarding or pacing note for the session.",
+          "minLength": 0,
+          "maxLength": 240
+        },
+        "status": {
+          "type": "string",
+          "description": "Registration status (cancelled is terminal for non-admin updates).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["registered", "cancelled"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when registered."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "workshopId",
+        "attendeeId",
+        "attendeeName",
+        "wantsSocialOverflow",
+        "adultApprovalType",
+        "adultApprovalConfirmed",
+        "appropriatenessConfirmed",
+        "safeguardingNote",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "WorkshopOverflowDetail": {
+      "title": "WorkshopOverflowDetail",
+      "description": "Protected subcollection document storing external Zoom/Facebook/Social Media overflow instructions, readable only after Treetop Token + Parent/Carer/Competent Adult approval.",
+      "type": "object",
+      "properties": {
+        "workshopId": {
+          "type": "string",
+          "description": "Parent CanopyWorkshop ID.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "hostId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the workshop host.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "platformLabel": {
+          "type": "string",
+          "description": "External platform label matching the workshop overflow platform.",
+          "minLength": 2,
+          "maxLength": 60
+        },
+        "joinInstructionsAndHandle": {
+          "type": "string",
+          "description": "Moderated room code, group name, or supervised join instructions unlocked after adult approval.",
+          "minLength": 6,
+          "maxLength": 400
+        },
+        "moderationRules": {
+          "type": "string",
+          "description": "Safeguarding boundaries (e.g., no private DMs, adult/carer welcome on camera/audio, moderated comments only).",
+          "minLength": 6,
+          "maxLength": 300
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "workshopId",
+        "hostId",
+        "platformLabel",
+        "joinInstructionsAndHandle",
+        "moderationRules",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "SpecialInterestPathway": {
+      "title": "SpecialInterestPathway",
+      "description": "Private owner-only Ground Entry Kiosk Personal Dashboard record where each entrant types in their special interest and which job or trade role it could lead to.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "description": "Immutable Firebase Auth UID of the entrant who owns this personal dashboard pathway.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "entrantHandle": {
+          "type": "string",
+          "description": "Non-PII Workshop Handle chosen by the entrant.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "specialInterest": {
+          "type": "string",
+          "description": "The entrant's typed special interest, fascination, or deep focus topic.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "potentialJobRole": {
+          "type": "string",
+          "description": "The job, vocation, or trade role that the entrant feels this special interest could lead to.",
+          "minLength": 2,
+          "maxLength": 120
+        },
+        "tradeTrack": {
+          "type": "string",
+          "description": "Matching Learn-a-Trade track in the Agarwood Treehouse Sanctuary.",
+          "minLength": 1,
+          "maxLength": 48,
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Digital & Systems Craft",
+            "Botanical & Community Outreach"
+          ]
+        },
+        "comfortableNextStep": {
+          "type": "string",
+          "description": "Optional calm, self-paced first step toward exploring this job pathway.",
+          "minLength": 0,
+          "maxLength": 360
+        },
+        "readinessStage": {
+          "type": "string",
+          "description": "Self-paced readiness stage chosen by the entrant on their personal dashboard.",
+          "minLength": 1,
+          "maxLength": 32,
+          "enum": [
+            "Exploring Curiosity",
+            "Practicing Craft",
+            "Ready for Trade Rota",
+            "Active Job Step"
+          ]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "entrantHandle",
+        "specialInterest",
+        "potentialJobRole",
+        "tradeTrack",
+        "comfortableNextStep",
+        "readinessStage",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CraftedBottleListing": {
+      "title": "CraftedBottleListing",
+      "description": "Maker-distilled, bottled, and custom-labelled special-interest product (such as Agarwood bark essential oil) placed on sale with readable labels in either the 0m Welcome Area, the 33m Canopy, or both.",
+      "type": "object",
+      "properties": {
+        "makerId": {
+          "type": "string",
+          "description": "Firebase Auth UID of the maker who fashioned the tools, bottled, and labelled the batch.",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$"
+        },
+        "makerName": {
+          "type": "string",
+          "description": "Public non-PII workshop handle printed on the bottle label.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "productTitle": {
+          "type": "string",
+          "description": "Full product title (e.g. Sanctuary Agarwood Bark Essential Oil).",
+          "minLength": 3,
+          "maxLength": 80
+        },
+        "labelHeadline": {
+          "type": "string",
+          "description": "High-contrast large-print headline printed on the bottle and 3D counter sign.",
+          "minLength": 2,
+          "maxLength": 40
+        },
+        "labelBatchNote": {
+          "type": "string",
+          "description": "Botanical batch, bark origin, and volume note printed on the label.",
+          "minLength": 2,
+          "maxLength": 80
+        },
+        "barkOriginAndProcess": {
+          "type": "string",
+          "description": "Craft pipeline note describing bark preparation, distillation tools, bottling, and labelling.",
+          "minLength": 10,
+          "maxLength": 500
+        },
+        "bottleSizeMl": {
+          "type": "number",
+          "description": "Amber apothecary dropper bottle volume in millilitres (5, 10, 15, or 30)."
+        },
+        "saleVenue": {
+          "type": "string",
+          "description": "Where the labelled bottles are placed on sale in the 3D Sanctuary.",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["welcome_area", "canopy", "both"]
+        },
+        "pricePence": {
+          "type": "number",
+          "description": "Welcome Area price in GBP pence (integer 300..50000, i.e. £3.00 to £500.00)."
+        },
+        "priceTokens": {
+          "type": "number",
+          "description": "Canopy Trade Counter price in Treehouse Tokens (integer 1..50)."
+        },
+        "stockCount": {
+          "type": "number",
+          "description": "Number of labelled bottles available on the counter (integer 0..50)."
+        },
+        "status": {
+          "type": "string",
+          "description": "Sale listing lifecycle state (archived is terminal).",
+          "minLength": 1,
+          "maxLength": 16,
+          "enum": ["on_sale", "sold_out", "archived"]
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when bottled and listed."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "makerId",
+        "makerName",
+        "productTitle",
+        "labelHeadline",
+        "labelBatchNote",
+        "barkOriginAndProcess",
+        "bottleSizeMl",
+        "saleVenue",
+        "pricePence",
+        "priceTokens",
+        "stockCount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "CanopyPaypalItem": {
+      "title": "CanopyPayPalStoreItem",
+      "description": "A handcrafted maker work or workshop creation listed for PayPal checkout at the 33m Treetop Canopy Store.",
+      "type": "object",
+      "properties": {
+        "sellerId": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "description": "Firebase Auth UID of the maker selling their work."
+        },
+        "sellerName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Non-PII workshop handle of the maker."
+        },
+        "title": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 80,
+          "description": "Title of the handcrafted work or bottled batch."
+        },
+        "tradeCategory": {
+          "type": "string",
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Community Outreach",
+            "Botanical & Essential Oils"
+          ],
+          "description": "Canopy trade category of the work."
+        },
+        "materialsSpec": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 200,
+          "description": "Materials, dimensions, or batch specification."
+        },
+        "craftStory": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 600,
+          "description": "Unhurried maker story describing how the work was crafted."
+        },
+        "sellerBenchTag": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 50,
+          "description": "Optional non-PII Canopy stall or PayPal reference tag."
+        },
+        "priceCents": {
+          "type": "integer",
+          "minimum": 300,
+          "maximum": 250000,
+          "description": "Unit price in GBP pence (300 to 250000, i.e. £3.00 to £2,500.00)."
+        },
+        "stockCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 100,
+          "description": "Available quantity on the Canopy store counter."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "sold_out", "archived"],
+          "description": "Current listing state."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when listed."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "sellerId",
+        "sellerName",
+        "title",
+        "tradeCategory",
+        "materialsSpec",
+        "craftStory",
+        "sellerBenchTag",
+        "priceCents",
+        "stockCount",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ShoeCharacterProfile": {
+      "title": "WelcomeAreaShoeCharacter",
+      "description": "Stores a member's chosen 3D shoe or wellington boot character selected in the 0m Welcome Area.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "description": "Firebase Auth UID of the member."
+        },
+        "shoeKind": {
+          "type": "string",
+          "enum": [
+            "wellington_boots",
+            "safety_wellington_boots",
+            "steel_toe_work_boots",
+            "artisan_work_shoes",
+            "timber_rigger_boots",
+            "canvas_maker_shoes"
+          ],
+          "description": "Selected 3D footwear character archetype."
+        },
+        "colorway": {
+          "type": "string",
+          "enum": [
+            "forest_welly_green",
+            "sunflower_welly_yellow",
+            "heritage_oak_tan",
+            "oxblood_leather",
+            "harbour_navy",
+            "charcoal_slate"
+          ],
+          "description": "Selected footwear upper colourway."
+        },
+        "characterNickname": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 36,
+          "description": "Friendly non-PII label for the member's footwear character."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when first chosen."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "shoeKind",
+        "colorway",
+        "characterNickname",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "ChillPodState": {
+      "title": "ChillPodState",
+      "description": "Tracks strict one-per-person private Chill Pod occupancy and sensory controls on the 33m Treetop Mezzanine (zero PII).",
+      "type": "object",
+      "properties": {
+        "podId": {
+          "type": "string",
+          "minLength": 5,
+          "maxLength": 16,
+          "enum": ["pod_1", "pod_2", "pod_3", "pod_4"],
+          "description": "Identifier of the private Treetop Mezzanine Chill Pod."
+        },
+        "podLabel": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 40,
+          "description": "Display name of the private Treetop Mezzanine Chill Pod."
+        },
+        "occupantId": {
+          "type": "string",
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]*$",
+          "description": "Firebase Auth UID of the single occupant, or empty string when vacant."
+        },
+        "occupantName": {
+          "type": "string",
+          "maxLength": 40,
+          "description": "Non-PII workshop alias of the current pod occupant, or empty string when vacant."
+        },
+        "occupancyStatus": {
+          "type": "string",
+          "enum": ["vacant", "occupied"],
+          "description": "Occupancy state enforcing strictly one person per pod."
+        },
+        "fanEnabled": {
+          "type": "boolean",
+          "description": "Whether the cooling overhead fan is switched on."
+        },
+        "heaterEnabled": {
+          "type": "boolean",
+          "description": "Whether the warm ceramic pod heater is switched on."
+        },
+        "lightsOffCalm": {
+          "type": "boolean",
+          "description": "Whether the pod interior light is turned off for low-glare sensory calm."
+        },
+        "flotationEnabled": {
+          "type": "boolean",
+          "description": "Whether warm-water sensory flotation is active in the pod berth."
+        },
+        "quiltType": {
+          "type": "string",
+          "enum": ["none", "vegan", "natural_duck_feather"],
+          "description": "Selected weighted heavy quilt option (none, vegan bamboo/kapok plant-down, or natural duck feather)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when pod record was initialized."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when pod state was last updated."
+        }
+      },
+      "required": [
+        "podId",
+        "podLabel",
+        "occupantId",
+        "occupantName",
+        "occupancyStatus",
+        "fanEnabled",
+        "heaterEnabled",
+        "lightsOffCalm",
+        "flotationEnabled",
+        "quiltType",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JobCentreVacancy": {
+      "title": "JobCentreVacancy",
+      "description": "Heritage Old-Style Job Centre Vacancy Index Card posted on the visible Ground Courtyard Job Centre Board.",
+      "type": "object",
+      "properties": {
+        "referenceCode": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 16,
+          "pattern": "^JC-[A-Z0-9-]+$",
+          "description": "Classic Job Centre stamped reference code (e.g. JC-101)."
+        },
+        "jobTitle": {
+          "type": "string",
+          "minLength": 3,
+          "maxLength": 90,
+          "description": "Clear job or trade role title on the index card."
+        },
+        "tradeCategory": {
+          "type": "string",
+          "enum": [
+            "Woodcraft & Joinery",
+            "Metalwork & Lanterns",
+            "Textiles & Weaving",
+            "Repair & Maker Tools",
+            "Digital & Systems Craft",
+            "Botanical & Community Outreach",
+            "Botanical & Essential Oils"
+          ],
+          "description": "Trade discipline for the vacancy card."
+        },
+        "locationZone": {
+          "type": "string",
+          "enum": [
+            "0m Courtyard Workbench",
+            "12m Ascent Relay",
+            "33m Canopy Workshop",
+            "33m Mezzanine Library & Refreshments",
+            "Community Outreach Rota"
+          ],
+          "description": "Treehouse station or zone where the role takes place."
+        },
+        "pacingStyle": {
+          "type": "string",
+          "enum": [
+            "Self-Paced Solo",
+            "Paired Quiet Bench",
+            "Small Collab Crew (2-4)",
+            "Flexible Drop-In"
+          ],
+          "description": "Sensory and social pacing format."
+        },
+        "cardSummary": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 700,
+          "description": "Plain-language overview printed on the Job Centre card."
+        },
+        "keySteps": {
+          "type": "string",
+          "minLength": 6,
+          "maxLength": 500,
+          "description": "Step-by-step duties printed on the Job Centre card."
+        },
+        "collaborationMode": {
+          "type": "string",
+          "enum": [
+            "Solo or Optional Buddy",
+            "Open Team-Up & Skill Swap",
+            "Mentor + Apprentice Pair",
+            "Shared Outreach Crew"
+          ],
+          "description": "How fellow makers can collaborate on this job slip."
+        },
+        "collaborationOpen": {
+          "type": "boolean",
+          "description": "Whether other members can join this card as collaborators."
+        },
+        "rewardTokens": {
+          "type": "number",
+          "description": "Token credit awarded upon taking and practicing this role (integer 1..15)."
+        },
+        "creatorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "description": "Firebase Auth UID of the member who pinned the vacancy card."
+        },
+        "creatorName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Non-PII display alias of the card poster."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["open", "filled", "archived"],
+          "description": "Vacancy lifecycle status (archived is terminal)."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when pinned."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "referenceCode",
+        "jobTitle",
+        "tradeCategory",
+        "locationZone",
+        "pacingStyle",
+        "cardSummary",
+        "keySteps",
+        "collaborationMode",
+        "collaborationOpen",
+        "rewardTokens",
+        "creatorId",
+        "creatorName",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "JobCentreCollaborator": {
+      "title": "JobCentreCollaborator",
+      "description": "Subcollection record of a member teaming up on an open Old-Style Job Centre Vacancy Card.",
+      "type": "object",
+      "properties": {
+        "vacancyId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "description": "Parent JobCentreVacancy document ID."
+        },
+        "memberId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "description": "Firebase Auth UID of the collaborating member."
+        },
+        "memberName": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Non-PII display alias of the collaborator."
+        },
+        "collabRole": {
+          "type": "string",
+          "enum": [
+            "Lead Maker",
+            "Co-Maker Buddy",
+            "Quiet Prep & Sorting",
+            "Finishing & Labelling",
+            "Outreach Helper"
+          ],
+          "description": "Specific role claimed by the collaborator."
+        },
+        "pledgeNote": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 280,
+          "description": "Short note describing how the collaborator will contribute."
+        },
+        "preferredStation": {
+          "type": "string",
+          "enum": [
+            "Ground Courtyard",
+            "Canopy Workbench",
+            "Mezzanine Library Desk",
+            "Async Written Notes"
+          ],
+          "description": "Collaborator's preferred working station."
+        },
+        "status": {
+          "type": "string",
+          "enum": ["active", "completed", "stepped_back"],
+          "description": "Collaboration pledge status."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when joined."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "vacancyId",
+        "memberId",
+        "memberName",
+        "collabRole",
+        "pledgeNote",
+        "preferredStation",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "UxBetaFeedback": {
+      "title": "UxBetaFeedback",
+      "description": "Owner-or-Admin isolated UX beta test observation submitted via the Public Beta Testing Hub (zero PII).",
+      "type": "object",
+      "properties": {
+        "authorId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9_-]{1,128}$",
+          "description": "Firebase Auth UID of the UX tester."
+        },
+        "testerHandle": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 40,
+          "description": "Non-PII alias of the tester."
+        },
+        "focusArea": {
+          "type": "string",
+          "enum": [
+            "Overall Navigation & Readability",
+            "Old-Style Job Centre & Collaboration",
+            "Mezzanine Library & Refreshments",
+            "Private Sensory Chill Pods",
+            "Entry Kiosk & Canopy Lift"
+          ],
+          "description": "Feature area evaluated during UX testing."
+        },
+        "easeScore": {
+          "type": "number",
+          "description": "Ease & sensory comfort rating from 1 to 5."
+        },
+        "workedWell": {
+          "type": "string",
+          "minLength": 4,
+          "maxLength": 600,
+          "description": "Notes on what felt intuitive or calming."
+        },
+        "improvementIdea": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 600,
+          "description": "Optional suggestions for improving clarity or accessibility."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when feedback was submitted."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when last updated."
+        }
+      },
+      "required": [
+        "authorId",
+        "testerHandle",
+        "focusArea",
+        "easeScore",
+        "workedWell",
+        "improvementIdea",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "DailyHabitTracker": {
+      "title": "DailyHabitTracker",
+      "description": "Owner-isolated daily professional mastery habit tracker and tree-climbing energy points ledger for PassiveUserDashboard.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_\\-]+$",
+          "description": "Immutable Firebase Auth UID of the member."
+        },
+        "activeDate": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 10,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+          "description": "Current YYYY-MM-DD local date corresponding to completedIdsToday."
+        },
+        "energyPoints": {
+          "type": "number",
+          "description": "Current spendable tree-climbing energy points balance (0..99999)."
+        },
+        "lifetimeEnergyEarned": {
+          "type": "number",
+          "description": "Cumulative tree-climbing energy points earned across all sessions (0..999999)."
+        },
+        "totalMilestonesLogged": {
+          "type": "number",
+          "description": "Cumulative count of professional mastery milestones logged (0..99999)."
+        },
+        "dailyStreak": {
+          "type": "number",
+          "description": "Consecutive days with at least one professional mastery milestone logged (0..99999)."
+        },
+        "bestStreak": {
+          "type": "number",
+          "description": "Highest consecutive daily habit streak achieved (0..99999)."
+        },
+        "completedIdsToday": {
+          "type": "array",
+          "description": "Bounded allowlist (max 10) of habit IDs completed on activeDate."
+        },
+        "customHabitLabels": {
+          "type": "array",
+          "description": "Bounded list (max 5) of custom professional mastery habit labels (2..60 chars each)."
+        },
+        "lastMilestoneLabel": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 80,
+          "description": "Short label of the most recently logged milestone."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when the habit tracker was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the habit tracker was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "activeDate",
+        "energyPoints",
+        "lifetimeEnergyEarned",
+        "totalMilestonesLogged",
+        "dailyStreak",
+        "bestStreak",
+        "completedIdsToday",
+        "customHabitLabels",
+        "lastMilestoneLabel",
+        "createdAt",
+        "updatedAt"
+      ]
+    },
+    "BankOfTreetopLedger": {
+      "title": "BankOfTreetopLedger",
+      "description": "Symbolic, educational Special-Interest Stock Savings Pot at the Bank of Treetop (NOT a real bank; zero real money or legal tender). Tracks saved Treetop Token units toward special-interest starter stock and unpaid volunteer Exchequer checks.",
+      "type": "object",
+      "properties": {
+        "uid": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128,
+          "pattern": "^[a-zA-Z0-9_-]+$",
+          "description": "Owner Firebase Auth UID."
+        },
+        "selectedBundleId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40,
+          "enum": [
+            "stock_cedar_joinery",
+            "stock_agarwood_vials",
+            "stock_drazella_publishing",
+            "stock_brass_lanterns",
+            "stock_plant_dyed_wool",
+            "stock_custom_interest"
+          ],
+          "description": "Selected special-interest starter stock bundle ID."
+        },
+        "customInterestGoal": {
+          "type": "string",
+          "maxLength": 90,
+          "description": "Optional custom special-interest stock goal description."
+        },
+        "savedUnits": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999,
+          "description": "Symbolic Treetop Stock Pot units currently set aside."
+        },
+        "lifetimeUnitsSaved": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 99999,
+          "description": "Cumulative symbolic Treetop Stock Pot units saved over time."
+        },
+        "bundlesRequisitioned": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999,
+          "description": "Number of symbolic special-interest starter stock bundles unlocked."
+        },
+        "exchequerChecksLogged": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9999,
+          "description": "Count of unpaid volunteer Exchequer ledger tallies completed by this Jay's Job Club member."
+        },
+        "disclaimerAccepted": {
+          "type": "boolean",
+          "description": "Confirms understanding that Bank of Treetop is NOT a real bank and holds no real money."
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Immutable server timestamp when the ledger was created."
+        },
+        "updatedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Server timestamp when the ledger was last updated."
+        }
+      },
+      "required": [
+        "uid",
+        "selectedBundleId",
+        "customInterestGoal",
+        "savedUnits",
+        "lifetimeUnitsSaved",
+        "bundlesRequisitioned",
+        "exchequerChecksLogged",
+        "disclaimerAccepted",
+        "createdAt",
+        "updatedAt"
+      ]
+    }
+  },
+  "firestore": {
+    "/publicProfiles/{userId}": {
+      "schema": {
+        "$ref": "#/entities/PublicProfile"
+      },
+      "description": "Stores public non-PII display handles keyed by Firebase Auth UID."
+    },
+    "/communityPosts/{postId}": {
+      "schema": {
+        "$ref": "#/entities/CommunityPost"
+      },
+      "description": "Stores published and archived Ground Floor Job & Collab Board posts."
+    },
+    "/canopyStudios/{userId}": {
+      "schema": {
+        "$ref": "#/entities/CanopyStudio"
+      },
+      "description": "Stores each player's personalized Canopy Trade Area, Secure Flooring, and placed 3D Lanterns/Furnishings."
+    },
+    "/journalEntries/{entryId}": {
+      "schema": {
+        "$ref": "#/entities/JournalEntry"
+      },
+      "description": "Stores private owner-only chronological Personal Journal entries."
+    },
+    "/treeProgress/{userId}": {
+      "schema": {
+        "$ref": "#/entities/TreeProgress"
+      },
+      "description": "Stores each member's Welcome Area check-in, Trying/Gathering/Treehouse Token balances, owned Canopy furnishings, and Daily Mastery Streak."
+    },
+    "/toolsOfTrade/{toolId}": {
+      "schema": {
+        "$ref": "#/entities/ToolOfTrade"
+      },
+      "description": "Stores Tools of the Trade for Canopy Show & Tell (private locker items and shared club Show & Tell items)."
+    },
+    "/storeListings/{listingId}": {
+      "schema": {
+        "$ref": "#/entities/StoreListing"
+      },
+      "description": "Stores player-to-player Canopy lantern and furnishing listings purchasable with Treehouse Tokens."
+    },
+    "/serviceProviders/{providerId}": {
+      "schema": {
+        "$ref": "#/entities/ServiceProvider"
+      },
+      "description": "Stores autism-affirming & neurobiologically-aware Service Providers (Pre-Crisis Intervention Counsellors, Crisis Coaching Specialists, and Skills & Trade Trainers)."
+    },
+    "/artisanItems/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/ArtisanItem"
+      },
+      "description": "Stores real handcrafted items listed in the Ground Floor Welcome Area Artisan Shop for PayPal checkout."
+    },
+    "/privacyConsents/{userId}": {
+      "schema": {
+        "$ref": "#/entities/PrivacyConsent"
+      },
+      "description": "Stores owner-only UK/EU GDPR Article 7(1) granular consent records keyed by Firebase Auth UID."
+    },
+    "/admins/{adminId}": {
+      "schema": {
+        "$ref": "#/entities/AdminRecord"
+      },
+      "description": "Stores trusted workshop administrator UIDs authorized to approve Treetop Token entry applications."
+    },
+    "/treetopApplications/{applicantId}": {
+      "schema": {
+        "$ref": "#/entities/TreetopApplication"
+      },
+      "description": "Stores Ground Sign-In Kiosk Special Interest Journey applications and Admin-approved Treetop Tokens required for entry."
+    },
+    "/pgCertNotes/{noteId}": {
+      "schema": {
+        "$ref": "#/entities/PgCertNote"
+      },
+      "description": "Stores PG Cert Autism and Mental Health student-in-training reflective study notes."
+    },
+    "/canopyWorkshops/{workshopId}": {
+      "schema": {
+        "$ref": "#/entities/CanopyWorkshop"
+      },
+      "description": "Stores the 33m Treetop Canopy Rota of special interest training and learn-a-trade workshops."
+    },
+    "/canopyWorkshops/{workshopId}/registrations/{attendeeId}": {
+      "schema": {
+        "$ref": "#/entities/WorkshopRegistration"
+      },
+      "description": "Stores Treetop Token holder workshop bookings and parent/carer or competent adult overflow approvals."
+    },
+    "/canopyWorkshops/{workshopId}/overflowAccess/{detailId}": {
+      "schema": {
+        "$ref": "#/entities/WorkshopOverflowDetail"
+      },
+      "description": "Stores safeguarded Zoom/Facebook/Social Media overflow join details unlocked only after Treetop Token and adult approval."
+    },
+    "/interestPathways/{pathwayId}": {
+      "schema": {
+        "$ref": "#/entities/SpecialInterestPathway"
+      },
+      "description": "Stores private owner-only Ground Entry Kiosk Personal Dashboard entries mapping an entrant's special interest to a potential job or trade role."
+    },
+    "/craftedBottles/{bottleId}": {
+      "schema": {
+        "$ref": "#/entities/CraftedBottleListing"
+      },
+      "description": "Stores custom-bottled and high-contrast labelled special-interest wares (such as Agarwood bark essential oil) placed on sale in the 0m Welcome Area, 33m Canopy, or both."
+    },
+    "/canopyPaypalItems/{itemId}": {
+      "schema": {
+        "$ref": "#/entities/CanopyPaypalItem"
+      },
+      "description": "Stores maker works listed for PayPal sale at the 33m Treetop Canopy Store."
+    },
+    "/shoeCharacters/{userId}": {
+      "schema": {
+        "$ref": "#/entities/ShoeCharacterProfile"
+      },
+      "description": "Stores each member's chosen Welcome Area 3D shoe or wellington boot character."
+    },
+    "/chillPodOccupancy/{podId}": {
+      "schema": {
+        "$ref": "#/entities/ChillPodState"
+      },
+      "description": "Stores one-per-person private Chill Pod occupancy and sensory settings (fan, heater, lights off, flotation, vegan/natural quilt) on the 33m Treetop Mezzanine."
+    },
+    "/jobCentreVacancies/{vacancyId}": {
+      "schema": {
+        "$ref": "#/entities/JobCentreVacancy"
+      },
+      "description": "Stores Old-Style Job Centre Vacancy Index Cards displayed on the visible Job Centre Board."
+    },
+    "/jobCentreVacancies/{vacancyId}/collaborators/{memberId}": {
+      "schema": {
+        "$ref": "#/entities/JobCentreCollaborator"
+      },
+      "description": "Stores multi-user collaboration team-ups attached to an open Job Centre Vacancy Card."
+    },
+    "/uxBetaFeedback/{feedbackId}": {
+      "schema": {
+        "$ref": "#/entities/UxBetaFeedback"
+      },
+      "description": "Stores owner-and-admin isolated UX testing feedback entries collected during Public Beta."
+    },
+    "/dailyHabitTrackers/{userId}": {
+      "schema": {
+        "$ref": "#/entities/DailyHabitTracker"
+      },
+      "description": "Stores owner-isolated daily professional mastery habit logs and tree-climbing energy points in PassiveUserDashboard."
+    },
+    "/bankOfTreetopLedgers/{userId}": {
+      "schema": {
+        "$ref": "#/entities/BankOfTreetopLedger"
+      },
+      "description": "Stores owner-isolated symbolic Special-Interest Stock Savings Pots at the Bank of Treetop (not a real bank; zero real money)."
+    }
+  }
+}
